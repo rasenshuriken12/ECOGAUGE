@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>EcoGauge - Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        :root {
+            /* Dark Theme (Default) */
+            --bg: #0b1020;
+            --card: #111833;
+            --header-bg: #161b22;
+            --header-bg-blur: rgba(22, 27, 34, 0.8);
+            --border-color: rgba(255, 255, 255, .1);
+            --muted: #97a3b6;
+            --text: #e8ecf6;
+
+            /* Shining Light Blue Theme (Default) */
+            --accent1: #29B6F6;      /* Main light blue for borders, active states */
+            --accent2: #81D4FA;      /* Lighter blue for hovers, text */
+            --logo-color: #29B6F6;   /* Logo color */
+            --glow-color-rgba: rgba(41, 182, 246, 0.4); /* RGBA version for glows */
+
+            --nav-accent1: var(--accent1);
+            --nav-accent2: var(--accent2);
+            --nav-glow-color-rgba: var(--glow-color-rgba);
+
+            /* AQI Palette */
+            --good: #34d399;
+            --moderate: #facc15;
+            --poor: #fb923c;
+            --unhealthy: #ef4444;
+            --severe: #a855f7;
+            --hazardous: #800000;
+
+            /* NPI Palette */
+            --quiet: #34d399;
+            --loud: #fb923c;
+            --very-loud: #ef4444;
+            --harmful: #a855f7;
+            --noise-moderate: #facc15; /* Added for noise scale */
+        }
+
+        /* Light Theme Override */
+        body.light-theme {
+            --bg: #f4f6f8;
+            --card: #ffffff;
+            --header-bg: #ffffff;
+            --header-bg-blur: rgba(255, 255, 255, 0.9);
+            --border-color: #e0e0e0;
+            --muted: #64748b;
+            --text: #1e293b;
+            --accent1: #0288d1;
+            --accent2: #03a9f4;
+            --logo-color: #0288d1;
+            --glow-color-rgba: rgba(2, 136, 209, 0.2);
+        }
+
+        *{ box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        /* Custom Gradient Background for Dark Mode Only */
+        body:not(.light-theme) {
+            background: linear-gradient(120deg, #0b1020 0%, #0e1430 60%, #151a3a 100%);
+        }
+
+        main {
+            flex: 1;
+            padding: 0; /* Removed padding to allow full-screen hero */
+        }
+
+        /* --- Alert Notification Styles --- */
+        .alert-container {
+            position: fixed;
+            top: 80px; /* Below the navbar */
+            right: 20px;
+            z-index: 1050;
+            width: 350px;
+            max-width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .toast-alert {
+            background: var(--card);
+            border: 1px solid var(--border-color);
+            border-left-width: 5px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: flex;
+            padding: 1.25rem;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            color: var(--text);
+        }
+        .toast-alert.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .toast-alert.exit {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        .toast-alert-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        .toast-alert-content h5 {
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 0.25rem 0;
+        }
+        .toast-alert-content p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin: 0;
+        }
+
+        /* --- Header/Nav Styles --- */
+        .site-nav {
+            background-color: var(--header-bg-blur);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            transition: background-color 0.3s ease;
+        }
+        .nav-container {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            width: 100%;
+            gap: 1rem;
+        }
+        .logo {
+            grid-column: 1 / 2;
+            justify-self: start;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--logo-color);
+            text-decoration: none;
+            transition: filter 0.2s ease;
+        }
+        .logo:hover {
+            filter: brightness(1.2);
+        }
+        .nav-controls {
+            grid-column: 2 / 3;
+            justify-self: center;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .nav-search-wrapper {
+            grid-column: 3 / 4;
+            justify-self: end;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .toggle-btn-group {
+            display: inline-flex;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--nav-accent1);
+            box-shadow: 0 0 8px 2px var(--nav-glow-color-rgba);
+        }
+        .toggle-btn {
+            padding: 6px 16px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            background-color: transparent;
+            color: var(--nav-accent2);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        .toggle-btn:not(:last-child) {
+            border-right: 1px solid var(--nav-accent1);
+        }
+        .toggle-btn.active {
+            background-color: var(--nav-accent1);
+            color: #FFFFFF;
+        }
+        .toggle-btn:hover:not(.active) {
+            background-color: rgba(41, 182, 246, 0.2);
+            color: var(--text);
+        }
+
+        /* Light Theme Toggle Button Specifics */
+        body.light-theme .toggle-btn {
+            color: var(--accent1); /* Default Blue */
+        }
+        body.light-theme .toggle-btn.active {
+            background-color: var(--accent1); /* Blue BG */
+            color: #FFFFFF; /* White Text */
+        }
+        body.light-theme .toggle-btn:hover:not(.active) {
+            background-color: rgba(2, 136, 209, 0.1); /* Faint light blue bg */
+            color: var(--accent1); /* Normal Blue text */
+        }
+
+        /* Navigation Buttons (Map, Ranking, Theme) */
+        .nav-btn {
+            cursor: pointer;
+            border: 1px solid var(--nav-accent1);
+            color: var(--nav-accent2);
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+        
+        .nav-btn:hover {
+            background-color: transparent; /* "bg should not change" */
+            box-shadow: 0 0 8px 3px var(--glow-color-rgba); /* "only box shadow should glow" */
+            color: var(--accent2); /* Keep text color consistent with accent */
+        }
+
+        /* Light Theme Nav Btn Specifics */
+        body.light-theme .nav-btn {
+            color: var(--accent1); /* Blue Text */
+            border-color: var(--accent1);
+        }
+        body.light-theme .nav-btn:hover {
+            background-color: transparent; /* No BG change */
+            box-shadow: 0 0 8px 3px var(--glow-color-rgba); /* Glow */
+            color: var(--accent1); /* Normal Blue text */
+            border-color: var(--accent1); /* Normal Blue border */
+        }
+
+        .search-form {
+            position: relative;
+        }
+        .search-form input {
+            border-radius: 20px;
+            padding-left: 15px;
+            padding-right: 45px;
+            background-color: rgba(255, 255, 255, .05);
+            border: 1px solid var(--border-color);
+            color: var(--text);
+            transition: all 0.2s ease-in-out;
+            height: 38px;
+        }
+        body.light-theme .search-form input { background-color: rgba(0, 0, 0, 0.05); }
+        .search-form input:focus {
+            border-color: var(--accent1);
+            background-color: var(--card);
+            color: var(--text);
+            outline: none;
+            box-shadow: none;
+        }
+        .search-form input::placeholder {
+            color: var(--muted);
+        }
+        .search-form button {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--nav-accent1);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .search-form button:hover {
+            filter: brightness(1.1);
+        }
+
+        /* --- Theme Toggle Button --- */
+        .theme-toggle-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin-left: 8px;
+            font-size: 1.2rem;
+        }
+        body.light-theme .bx-sun { display: none; }
+        body:not(.light-theme) .bx-moon { display: none; }
+
+        /* --- Profile Dropdown Styles --- */
+        .profile-dropdown {
+            position: relative;
+        }
+        .profile-btn {
+            background: var(--card);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            color: var(--muted); 
+        }
+        .profile-btn:hover {
+            border-color: var(--accent1);
+            color: var(--accent1); 
+        }
+        .profile-btn i {
+            font-size: 1.8rem;
+        }
+        .profile-menu {
+            display: none; 
+            position: absolute;
+            top: 55px;
+            right: 0;
+            width: 260px;
+            background: var(--card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.25);
+            z-index: 100;
+        }
+        .profile-menu.active {
+            display: block; 
+        }
+        .profile-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .profile-name {
+            font-weight: 600;
+            color: var(--text);
+            margin: 0;
+            font-size: 1rem;
+        }
+        .profile-email {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin: 0;
+        }
+        .profile-menu-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+        .profile-menu-item:hover {
+            background-color: rgba(255,255,255,0.05);
+            color: var(--text);
+        }
+        body.light-theme .profile-menu-item:hover { background-color: rgba(0,0,0,0.05); }
+        .profile-menu-item.logout {
+            color: var(--unhealthy);
+            border-top: 1px solid var(--border-color);
+        }
+        .profile-menu-item.logout:hover {
+            color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+
+        /* --- Main Content Styles --- */
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .detect-location-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--muted);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .detect-location-btn:hover {
+            color: var(--accent2);
+            border-color: var(--accent2);
+            box-shadow: 0 0 10px 2px var(--glow-color-rgba);
+        }
+        .detect-location-btn.loading {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+
+        /* --- Hero Header with Parallax --- */
+        .hero-header {
+            position: relative;
+            width: 100%;
+            height: 100vh; /* Full Laptop Screen Height */
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            margin: 0;
+            border-radius: 0; /* Box removed */
+        }
+        .hero-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 120%; /* Taller for parallax movement */
+            object-fit: cover;
+            filter: brightness(0.6);
+            z-index: 0;
+            will-change: transform;
+        }
+        .hero-overlay {
+            position: relative;
+            z-index: 1;
+            width: 90%;
+            max-width: 800px;
+        }
+        .hero-title {
+            font-size: clamp(3rem, 6vw, 4.5rem);
+            font-weight: 800;
+            text-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            letter-spacing: -1px;
+        }
+        .hero-subtitle {
+            font-size: 1.4rem;
+            margin-top: 1rem;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+            opacity: 0.9;
+        }
+
+        .content-box {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 18px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 30px rgba(0,0,0,.25);
+            margin-bottom: 24px;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Live AQI Container */
+        .live-aqi-container, .live-npi-container {
+            color: var(--text);
+        }
+        .live-aqi-container h2, .live-npi-container h2 {
+            color: var(--text);
+            border: none;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+            position: relative;
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+        .live-aqi-container h2::after, .live-npi-container h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, var(--accent1), var(--accent2));
+        }
+        .aqi-main-info, .npi-main-info {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .aqi-value, .npi-value {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .npi-value small {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--muted);
+        }
+        .aqi-status-wrapper, .npi-status-wrapper {
+            display: block;
+            margin-bottom: 8px;
+        }
+        .aqi-status-box, .npi-status-box {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .recommendation-text {
+            font-size: 1.1rem;
+            color: var(--text);
+            margin-bottom: 25px;
+            margin-top: -10px; /* Pull it closer to the main info */
+            border-left: 3px solid var(--accent1);
+            padding-left: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .pollutant-info {
+            font-size: 1.1rem;
+            margin-bottom: 35px;
+        }
+        .noise-source-info {
+            font-size: 1.1rem;
+            margin-bottom: 35px;
+        }
+
+        .aqi-scale-wrapper, .npi-scale-wrapper {
+            position: relative;
+            padding-bottom: 25px;
+        }
+        .aqi-scale, .npi-scale {
+            height: 10px;
+            border-radius: 5px;
+            display: flex;
+            overflow: hidden;
+        }
+        .aqi-scale-segment, .npi-scale-segment {
+            height: 100%;
+        }
+        .aqi-scale-pointer, .npi-scale-pointer {
+            position: absolute;
+            top: -3px;
+            width: 16px;
+            height: 16px;
+            background-color: white;
+            border-radius: 50%;
+            border: 2px solid var(--card);
+            transform: translateX(-50%);
+            transition: left 0.5s ease-in-out;
+            cursor: pointer;
+            animation: pulse 2s infinite;
+        }
+        body.light-theme .aqi-scale-pointer, body.light-theme .npi-scale-pointer {
+            border-color: #333;
+        }
+
+        .aqi-scale-labels, .npi-scale-labels {
+            position: absolute;
+            width: 100%;
+            bottom: 0;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        .aqi-scale-labels span, .npi-scale-labels span {
+            position: absolute;
+            transform: translateX(-50%);
+        }
+        .aqi-scale-labels span:first-child, .npi-scale-labels span:first-child { transform: translateX(0); }
+        .aqi-scale-labels span:last-child, .npi-scale-labels span:last-child { transform: translateX(-100%); }
+
+
+        /* --- Snapshot Card Styles --- */
+        .snapshot-title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 24px;
+        }
+        .snapshot-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .snapshot-column h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .snapshot-column h4 i {
+            font-size: 1.3rem;
+        }
+        .snapshot-column ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            space-y: 8px;
+        }
+        .snapshot-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border-left: 4px solid var(--border-color);
+        }
+        body.light-theme .snapshot-item { background: #f1f5f9; }
+        .snapshot-item-name {
+            font-weight: 500;
+            color: var(--text);
+        }
+        .snapshot-item-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .snapshot-item.good .snapshot-item-value { color: var(--good); }
+        .snapshot-item.good { border-left-color: var(--good); }
+        .snapshot-item.bad .snapshot-item-value { color: var(--unhealthy); }
+        .snapshot-item.bad { border-left-color: var(--unhealthy); }
+        .snapshot-item.quiet .snapshot-item-value { color: var(--quiet); }
+        .snapshot-item.quiet { border-left-color: var(--quiet); }
+        .snapshot-item.loud .snapshot-item-value { color: var(--very-loud); }
+        .snapshot-item.loud { border-left-color: var(--very-loud); }
+
+        @media (max-width: 600px) {
+            .snapshot-grid { grid-template-columns: 1fr; }
+        }
+
+        /* --- Educational Section Styles (Restored) --- */
+        .gradient-text {
+            display: inline-block;
+            background: linear-gradient(to right, var(--accent1), var(--accent2));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .filter-btn-separate {
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid var(--border-color);
+            color: var(--muted);
+            padding: 8px 18px;
+            border-radius: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        body.light-theme .filter-btn-separate { background: #f1f5f9; }
+        .filter-btn-separate:hover {
+            background: rgba(255, 255, 255, .1);
+            border-color: var(--text);
+            color: var(--text);
+            transform: translateY(-2px);
+        }
+        .filter-btn-separate.active {
+            background: rgba(41, 182, 246, 0.1);
+            border: 2px solid var(--accent1);
+            color: var(--accent1);
+            padding: 7px 17px;
+            font-weight: 600;
+            box-shadow: 0 0 12px -2px var(--glow-color-rgba);
+        }
+        
+        .edu-section { display: none; }
+        .edu-section.active { display: block; }
+        
+        .edu-section h2 { margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.5rem; color: var(--text); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; display: block; }
+        .edu-section h3 { margin-top: 1.2rem; font-size: 1.2rem; color: var(--text); }
+        .edu-section ul { color: var(--muted); line-height: 1.6; }
+        
+        .table-wrapper { overflow-x:auto; border-radius:14px; margin-top: 10px; border: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; background: transparent; }
+        thead th { font-size: 12px; text-align: left; color: var(--muted); background-color: rgba(255, 255, 255, 0.08); padding: 12px 10px; }
+        body.light-theme thead th { background-color: #f1f5f9; }
+        td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text); }
+        tbody tr { background-color: rgba(255, 255, 255, 0.02); }
+        body.light-theme tbody tr { background-color: transparent; }
+        tbody tr:hover { background: rgba(255, 255, 255, .05); }
+        body.light-theme tbody tr:hover { background: #f8fafc; }
+
+<footer class="mt-auto border-t border-gray-200 bg-white py-8 text-center text-gray-600 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#161b22] dark:text-[#97a3b6]">
+    <p class="mb-3">&copy; 2025 EcoGauge. All Rights Reserved.</p>
+    <p class="text-sm my-3">
+        <a href="About_Us.html" class="mx-2 font-medium text-blue-600 hover:underline dark:text-[#00aeff] dark:hover:text-[#29B6F6]">About Us</a> |
+        <a href="Contact_Us.html" class="mx-2 font-medium text-blue-600 hover:underline dark:text-[#00aeff] dark:hover:text-[#29B6F6]">Contact</a> |
+        <a href="#" class="mx-2 font-medium text-blue-600 hover:underline dark:text-[#00aeff] dark:hover:text-[#29B6F6]">Privacy Policy</a>
+    </p>
+    <div class="social-icons mt-4">
+        <a href="#" aria-label="Twitter"><i class='bx bxl-twitter'></i></a>
+        <a href="#" aria-label="Facebook"><i class='bx bxl-facebook-circle'></i></a>
+        <a href="#" aria-label="LinkedIn"><i class='bx bxl-linkedin-square'></i></a>
+    </div>
+</footer>
+
+
+        /* Footer Styles */
+        .site-footer {
+            background-color: var(--header-bg);
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            border-top: 1px solid var(--border-color);
+        }
+        .site-footer p {
+            margin: 0;
+            color: var(--muted);
+        }
+        .site-footer a {
+            color: var(--accent1);
+            text-decoration: none;
+            margin: 0 8px;
+            transition: color 0.2s ease, text-decoration 0.2s ease;
+        }
+        .site-footer a:hover {
+            color: var(--accent2);
+            text-decoration: underline;
+        }
+
+        /* --- Fact Bot Styles (Restored) --- */
+        #fact-bot-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--accent1), var(--nav-accent1));
+            color: white;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease;
+            z-index: 999;
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+        #fact-bot-btn:hover {
+            transform: scale(1.1);
+            animation-play-state: paused;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 15px 0px var(--glow-color-rgba); }
+            50% { box-shadow: 0 0 25px 8px var(--glow-color-rgba); }
+            100% { box-shadow: 0 0 15px 0px var(--glow-color-rgba); }
+        }
+
+        /* --- MODIFIED: Fact Modal (No Blur) --- */
+        #fact-widget {
+            position: fixed;
+            bottom: 100px; /* Position above the button */
+            right: 30px;
+            width: 350px;
+            max-width: 90%;
+            background: var(--card);
+            border: 1px solid var(--border-color);
+            border-left: 5px solid var(--nav-accent1);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            display: flex;
+            padding: 1.25rem;
+            z-index: 998;
+
+            /* Hidden by default */
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            transition: all 0.3s ease-out;
+        }
+        #fact-widget.active { /* This class will be toggled */
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        #fact-widget-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #fact-widget-close:hover {
+            color: var(--text);
+        }
+
+        #fact-widget-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+            color: var(--nav-accent1);
+            flex-shrink: 0;
+            margin-top: 5px; /* Align with text */
+        }
+        #fact-widget-content h5 {
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 0.25rem 0;
+        }
+        #fact-widget-content p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        /* --- Media Queries --- */
+        @media (max-width: 800px) {
+            .nav-btn .btn-text, .toggle-btn .btn-text { display: none; }
+            .nav-controls { gap: 0.5rem; }
+
+            #fact-bot-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 2rem;
+            }
+            #fact-widget {
+                left: 20px;
+                right: 20px;
+                bottom: 80px; /* Above new button position */
+                width: auto;
+            }
+        }
+        @media (max-width: 768px) {
+            .nav-container {
+                grid-template-columns: 1fr;
+                justify-items: center;
+                gap: 12px;
+            }
+            .logo, .nav-controls, .nav-search-wrapper {
+                grid-column: 1 / -1;
+                justify-self: center;
+            }
+            .nav-search-wrapper {
+                justify-self: stretch; /* Make search bar take more width */
+                width: 80%;
+                margin: 0 auto;
+            }
+            .search-form {
+                flex-grow: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div id="alert-container" class="alert-container"></div>
+
+<nav class="site-nav">
+    <div class="nav-container">
+        <a class="logo" href="landing_page.html">EcoGauge</a>
+        <div class="nav-controls">
+            <div class="toggle-btn-group">
+                <button id="home-aqi-toggle" class="toggle-btn active"><i class='bx bx-wind'></i><span class="btn-text">AQI</span></button>
+                <button id="home-noise-toggle" class="toggle-btn"><i class='bx bxs-volume-full'></i><span class="btn-text">Noise</span></button>
+            </div>
+
+            <a class="nav-btn" href="/maps/AQI_MAP.html" role="button" title="Map View">
+                <i class='bx bxs-map'></i> <span class="btn-text">Map</span>
+            </a>
+
+            <a class="nav-btn" href="/user_ranking.html" role="button" title="View Rankings">
+                <i class='bx bxs-bar-chart-alt-2'></i> <span class="btn-text">Rankings</span>
+            </a>
+        </div>
+
+        <div class="nav-search-wrapper">
+            <form class="d-flex search-form" id="searchForm">
+                <input class="form-control" type="search" placeholder="Search Station..." id="citySearch">
+                <button type="submit"><i class='bx bx-search-alt-2'></i></button>
+            </form>
+
+            <div class="profile-dropdown">
+                <button class="profile-btn" id="profile-btn" title="Profile">
+                    <i class='bx bxs-user-circle'></i>
+                </button>
+                <div class="profile-menu" id="profile-menu">
+                    <div class="profile-header">
+                        <p class="profile-name" id="profile-name">Loading...</p>
+                        <p class="profile-email" id="profile-email">Loading...</p>
+                    </div>
+                    <a href="/logout" class="profile-menu-item logout">
+                        <i class='bx bx-log-out' style="vertical-align: middle; margin-right: 8px;"></i>Logout
+                    </a>
+                </div>
+            </div>
+
+            <button class="nav-btn theme-toggle-btn" id="theme-toggle" title="Toggle theme">
+                <i class='bx bx-sun'></i>
+                <i class='bx bx-moon'></i>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<main>
+    <div id="aqi-home-view">
+        <header class="hero-header">
+            <img src="https://moderndiplomacy.eu/wp-content/uploads/2021/09/air-pollution-china.jpg"
+                 alt="Aerial view of a modern city at dusk" class="hero-image">
+            <div class="hero-overlay">
+                <h1 class="hero-title">Welcome to EcoGauge</h1>
+                <p class="hero-subtitle">Your real-time guide to air quality and noise levels in your city.</p>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            <div class="content-box">
+                <div class="live-aqi-container">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <h2 id="aqi-city-name">Loading...</h2>
+                        <button id="detect-location-btn-aqi" class="detect-location-btn" title="Detect My Location">
+                            <i class='bx bx-current-location'></i>
+                        </button>
+                    </div>
+                    <div class="aqi-main-info">
+                        <div id="aqi-live-value" class="aqi-value">--</div>
+                        <div class="aqi-status-wrapper">
+                            <span>Air Quality is</span>
+                            <div id="aqi-live-status" class="aqi-status-box">Loading...</div>
+                        </div>
+                    </div>
+
+                    <p id="aqi-recommendation" class="recommendation-text">Loading precaution...</p>
+
+                    <div class="pollutant-info">
+                        <span><strong>PM10:</strong> <span id="pm10-value">--</span> µg/m³</span>
+                        <span class="ms-4"><strong>PM2.5:</strong> <span id="pm25-value">--</span> µg/m³</span>
+                    </div>
+                    <div class="aqi-scale-wrapper">
+                        <div class="aqi-scale">
+                            <div class="aqi-scale-segment" style="width: 10%; background-color: var(--good);"></div>
+                            <div class="aqi-scale-segment" style="width: 10%; background-color: var(--moderate);"></div>
+                            <div class="aqi-scale-segment" style="width: 10%; background-color: var(--poor);"></div>
+                            <div class="aqi-scale-segment" style="width: 10%; background-color: var(--unhealthy);"></div>
+                            <div class="aqi-scale-segment" style="width: 20%; background-color: var(--severe);"></div>
+                            <div class="aqi-scale-segment" style="width: 40%; background-color: var(--hazardous);"></div>
+                        </div>
+                        <div id="aqi-pointer" class="aqi-scale-pointer" style="left: 0%;"></div>
+                        <div class="aqi-scale-labels">
+                            <span style="left: 0%;">0</span>
+                            <span style="left: 10%;">50</span>
+                            <span style="left: 20%;">100</span>
+                            <span style="left: 30%;">150</span>
+                            <span style="left: 40%;">200</span>
+                            <span style="left: 60%;">300</span>
+                            <span style="left: 100%;">301+</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-box snapshot-card">
+                <h3 class="snapshot-title"><span class="gradient-text">AQI Trends</span></h3>
+                <div class="snapshot-grid">
+                    <div class="snapshot-column">
+                        <h4><i class='bx bxs-leaf' style='color: var(--good);'></i> Top 3 Cleanest Stations</h4>
+                        <ul id="aqi-best-list">
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        </ul>
+                    </div>
+                    <div class="snapshot-column">
+                        <h4><i class='bx bxs-skull' style='color: var(--unhealthy);'></i> Top 3 Most Polluted Stations</h4>
+                        <ul id="aqi-worst-list">
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AQI Educational Section -->
+            <div class="content-box">
+                <h1 class="text-center mb-4">Decoding the <span class="gradient-text">Air We Breathe</span></h1>
+                <div class="d-flex justify-content-center flex-wrap gap-3 mb-4" role="group">
+                    <button type="button" class="filter-btn-separate edu-toggle-btn active" data-target="causes">Causes</button>
+                    <button type="button" class="filter-btn-separate edu-toggle-btn" data-target="effects">Effects</button>
+                    <button type="button" class="filter-btn-separate edu-toggle-btn" data-target="solutions">Solutions</button>
+                </div>
+
+                <div id="causes" class="edu-section active">
+                    <h2>1. What is Air Pollution?</h2>
+                    <ul>
+                        <li>Presence of harmful substances in the atmosphere.</li>
+                        <li>Includes outdoor pollution (vehicles, factories, crop burning) and indoor pollution (smoke, poor ventilation).</li>
+                    </ul>
+                    <h2>2. What is AQI (Air Quality Index)?</h2>
+                    <ul>
+                        <li>AQI communicates current or forecasted pollution levels.</li>
+                        <li>Scale: 0 to 500 (higher = worse).</li>
+                        <li>Major pollutants: PM2.5, PM10, NO₂, SO₂, CO, O₃.</li>
+                    </ul>
+                    <h3>AQI Categories</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>AQI Range</th>
+                                <th>Health Concern</th>
+                                <th>Color</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>0–50</td>
+                                <td>Good</td>
+                                <td style="background-color: var(--good); color: black;">Green</td>
+                            </tr>
+                            <tr>
+                                <td>51–100</td>
+                                <td>Moderate</td>
+                                <td style="background-color: var(--moderate); color: black;">Yellow</td>
+                            </tr>
+                            <tr>
+                                <td>101–150</td>
+                                <td>Poor</td>
+                                <td style="background-color: var(--poor); color: black;">Orange</td>
+                            </tr>
+                            <tr>
+                                <td>151–200</td>
+                                <td>Unhealthy</td>
+                                <td style="background-color: var(--unhealthy); color: white;">Red</td>
+                            </tr>
+                            <tr>
+                                <td>201–300</td>
+                                <td>Severe</td>
+                                <td style="background-color: var(--severe); color: white;">Purple</td>
+                            </tr>
+                            <tr>
+                                <td>301–500</td>
+                                <td>Hazardous</td>
+                                <td style="background-color: var(--hazardous); color: white;">Maroon</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h2>3. Causes of Air Pollution</h2>
+                    <ul>
+                        <li><strong>Human-made:</strong> Vehicle emissions, industrial discharge, construction dust, burning fossil fuels, waste burning.</li>
+                        <li><strong>Natural:</strong> Wildfires, dust storms, volcanic activity.</li>
+                    </ul>
+                </div>
+
+                <div id="effects" class="edu-section">
+                    <h2>4. Effects on the Present Generation</h2>
+                    <ul>
+                        <li>Respiratory diseases: asthma, bronchitis, lung cancer.</li>
+                        <li>Heart issues, eye irritation.</li>
+                        <li>Decreased productivity due to illness.</li>
+                        <li>Environmental effects: smog, acid rain, poor visibility.</li>
+                    </ul>
+                    <h2>5. Effects on Future Generations</h2>
+                    <ul>
+                        <li>Poor lung development in children.</li>
+                        <li>Higher risk of cognitive and developmental disorders.</li>
+                        <li>Long-term environmental damage.</li>
+                        <li>Harm to biodiversity and climate.</li>
+                    </ul>
+                </div>
+
+                <div id="solutions" class="edu-section">
+                    <h2>6. Real-Life Solutions</h2>
+                    <h3>Individual Level</h3>
+                    <ul>
+                        <li>Use public transport, carpool, bike, or walk.</li>
+                        <li>Shift to electric vehicles and clean fuels.</li>
+                        <li>Avoid burning garbage or leaves.</li>
+                        <li>Grow air-purifying plants.</li>
+                    </ul>
+                    <h3>Community Level</h3>
+                    <ul>
+                        <li>Create green zones and urban forests.</li>
+                        <li>Control dust/emissions at construction sites.</li>
+                        <li>Promote recycling and waste segregation.</li>
+                        <li>Raise community awareness.</li>
+                    </ul>
+                    <h3>Government Level</h3>
+                    <ul>
+                        <li>Enforce pollution laws.</li>
+                        <li>Invest in renewables and public transit.</li>
+                        <li>Regulate crop burning.</li>
+                        <li>Educate the public via media campaigns.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="noise-home-view" style="display: none;">
+        <header class="hero-header">
+            <img src="https://static.toiimg.com/thumb/msid-105136821,width-1280,height-720,resizemode-72/105136821.jpg"
+                 alt="Busy city street with traffic" class="hero-image">
+            <div class="hero-overlay">
+                <h1 class="hero-title">Welcome to EcoGauge</h1>
+                <p class="hero-subtitle">Your real-time guide to air quality and noise levels in your city.</p>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            <div class="content-box">
+                <div class="live-npi-container">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <h2 id="npi-city-name">Loading...</h2>
+                        <button id="detect-location-btn-noise" class="detect-location-btn" title="Detect My Location">
+                            <i class='bx bx-current-location'></i>
+                        </button>
+                    </div>
+                    <div class="npi-main-info">
+                        <div id="npi-live-value" class="npi-value">-- <small>dB</small></div>
+                        <div class="npi-status-wrapper">
+                            <span>Noise Level is</span>
+                            <div id="npi-live-status" class="npi-status-box">Loading...</div>
+                        </div>
+                    </div>
+
+                    <p id="npi-recommendation" class="recommendation-text">Loading precaution...</p>
+
+                    <div class="noise-source-info">
+                        <span><strong>Main Sources:</strong> <span id="noise-sources">Traffic, Crowds, Construction</span></span>
+                    </div>
+                    <div class="npi-scale-wrapper">
+                        <div class="npi-scale">
+                            <div class="npi-scale-segment" style="width: 35.7%; background-color: var(--quiet);"></div>
+                            <div class="npi-scale-segment" style="width: 14.3%; background-color: var(--noise-moderate);"></div>
+                            <div class="npi-scale-segment" style="width: 14.3%; background-color: var(--loud);"></div>
+                            <div class="npi-scale-segment" style="width: 14.3%; background-color: var(--very-loud);"></div>
+                            <div class="npi-scale-segment" style="width: 21.4%; background-color: var(--harmful);"></div>
+                        </div>
+                        <div id="npi-pointer" class="npi-scale-pointer" style="left: 0%;"></div>
+                        <div class="npi-scale-labels">
+                            <span style="left: 0%;">0</span>
+                            <span style="left: 35.7%;">50</span>
+                            <span style="left: 50%;">70</span>
+                            <span style="left: 64.3%;">90</span>
+                            <span style="left: 78.6%;">110</span>
+                            <span style="left: 100%;">140</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-box snapshot-card">
+                <h3 class="snapshot-title"><span class="gradient-text">NPI Trends</span></h3>
+                <div class="snapshot-grid">
+                    <div class="snapshot-column">
+                        <h4><i class='bx bxs-volume-low' style='color: var(--quiet);'></i> Top 3 Quietest Stations</h4>
+                        <ul id="noise-best-list">
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        </ul>
+                    </div>
+                    <div class="snapshot-column">
+                        <h4><i class='bx bxs-volume-full' style='color: var(--very-loud);'></i> Top 3 Loudest Stations</h4>
+                        <ul id="noise-worst-list">
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                            <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Noise Educational Section -->
+            <div class="content-box">
+                <h1 class="text-center mb-4">Decoding the <span class="gradient-text">Noise We Hear</span></h1>
+                <div class="d-flex justify-content-center flex-wrap gap-3 mb-4" role="group">
+                    <button type="button" class="filter-btn-separate edu-toggle-btn active" data-target="noise-causes">Sources</button>
+                    <button type="button" class="filter-btn-separate edu-toggle-btn" data-target="noise-effects">Effects</button>
+                    <button type="button" class="filter-btn-separate edu-toggle-btn" data-target="noise-solutions">Solutions</button>
+                </div>
+
+                <div id="noise-causes" class="edu-section active">
+                    <h2>1. What is Noise Pollution?</h2>
+                    <ul>
+                        <li>Unwanted or excessive sound that can have deleterious effects on human health and environmental quality.</li>
+                        <li>Measured in decibels (dB). Sound becomes harmful above 85 dB.</li>
+                    </ul>
+                    <h2>2. Decibel Scale & Sources</h2>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>Level (dB)</th>
+                                <th>Example Source</th>
+                                <th>Impact</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>30</td>
+                                <td>Whisper, Quiet Library</td>
+                                <td style="background-color: var(--quiet); color: black;">Safe</td>
+                            </tr>
+                            <tr>
+                                <td>60</td>
+                                <td>Normal Conversation</td>
+                                <td style="background-color: var(--noise-moderate); color: black;">Moderate</td>
+                            </tr>
+                            <tr>
+                                <td>85</td>
+                                <td>Heavy Traffic, Lawnmower</td>
+                                <td style="background-color: var(--loud); color: black;">Risk (Long exposure)</td>
+                            </tr>
+                            <tr>
+                                <td>110</td>
+                                <td>Car Horn, Concert</td>
+                                <td style="background-color: var(--very-loud); color: white;">Dangerous</td>
+                            </tr>
+                            <tr>
+                                <td>140+</td>
+                                <td>Jet Engine, Gunshot</td>
+                                <td style="background-color: var(--harmful); color: white;">Immediate Damage</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="noise-effects" class="edu-section">
+                    <h2>3. Health Impacts</h2>
+                    <ul>
+                        <li><strong>Hearing Loss:</strong> Prolonged exposure to loud noise can kill nerve endings in the inner ear.</li>
+                        <li><strong>Stress & Anxiety:</strong> Increases cortisol levels, leading to high blood pressure and heart risks.</li>
+                        <li><strong>Sleep Disturbance:</strong> Even low levels of noise can disrupt sleep cycles, affecting memory and mood.</li>
+                        <li><strong>Cognitive Impairment:</strong> Affects concentration and learning, especially in children.</li>
+                    </ul>
+                </div>
+
+                <div id="noise-solutions" class="edu-section">
+                    <h2>4. Mitigation Strategies</h2>
+                    <h3>Personal</h3>
+                    <ul>
+                        <li>Wear earplugs or noise-canceling headphones in loud environments.</li>
+                        <li>Keep volume down on personal audio devices (60% rule).</li>
+                        <li>Create quiet zones in your home.</li>
+                    </ul>
+                    <h3>Structural & Community</h3>
+                    <ul>
+                        <li><strong>Soundproofing:</strong> Use double-paned windows and thick curtains.</li>
+                        <li><strong>Green Barriers:</strong> Planting trees can absorb sound by up to 5-10 dB.</li>
+                        <li><strong>Traffic Management:</strong> Low-noise asphalt and restricting honking in residential areas.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; 2025 EcoGauge. All Rights Reserved.</p>
+    <p>
+        <a href="/Aboutus.html">About Us</a> |
+        <a href="/Contactus.html">Contact</a>
+        <a href="/Contactus.html">Contact</a>        
+
+    </p>
+</footer>
+
+<button id="fact-bot-btn" title="Did You Know?">
+    <i class='bx bx-bulb'></i>
+</button>
+
+<div id="fact-widget" class="fact-widget">
+    <button id="fact-widget-close" class="fact-widget-close" title="Close">&times;</button>
+    <div class="fact-widget-icon">
+        <i class='bx bx-bulb'></i>
+    </div>
+    <div class="fact-widget-content">
+        <h5>Did You Know?</h5>
+        <p id="fact-widget-text">Loading fact...</p>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const rootStyles = getComputedStyle(document.documentElement);
+
+        let allStationData = new Map();
+        const API_URL = '/api/stations';
+        const USER_API_URL = '/api/user/me';
+
+        // --- Haversine Distance Function ---
+        function haversineDistance(coords1, coords2) {
+            function toRad(x) { return x * Math.PI / 180; }
+            const R = 6371; // km
+            const dLat = toRad(coords2.lat - coords1.lat);
+            const dLon = toRad(coords2.lon - coords1.lon);
+            const lat1 = toRad(coords1.lat);
+            const lat2 = toRad(coords2.lat);
+
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        // --- Utility functions to get status ---
+        function getAqiInfo(aqi) {
+            if (aqi <= 50) return { text: 'Good', color: rootStyles.getPropertyValue('--good').trim(), textColor: 'black', recommendation: "Air quality is good. Enjoy outdoor activities." };
+            if (aqi <= 100) return { text: 'Moderate', color: rootStyles.getPropertyValue('--moderate').trim(), textColor: 'black', recommendation: "Unusually sensitive people should consider limiting prolonged outdoor exertion." };
+            if (aqi <= 150) return { text: 'Poor', color: rootStyles.getPropertyValue('--poor').trim(), textColor: 'black', recommendation: "Sensitive groups should reduce prolonged or heavy exertion." };
+            if (aqi <= 200) return { text: 'Unhealthy', color: rootStyles.getPropertyValue('--unhealthy').trim(), textColor: 'white', recommendation: "Everyone may begin to experience health effects; sensitive groups should avoid outdoor activities." };
+            if (aqi <= 300) return { text: 'Severe', color: rootStyles.getPropertyValue('--severe').trim(), textColor: 'white', recommendation: "Health warnings of emergency conditions. Everyone is more likely to be affected." };
+            return { text: 'Hazardous', color: rootStyles.getPropertyValue('--hazardous').trim(), textColor: 'white', recommendation: "Health alert: everyone should avoid all outdoor exertion." };
+        }
+
+        function getNoiseInfo(db) {
+            if (db <= 50) return { text: 'Quiet', color: rootStyles.getPropertyValue('--quiet').trim(), textColor: 'black', recommendation: "Noise levels are quiet. Ideal for all activities." };
+            if (db <= 70) return { text: 'Moderate', color: rootStyles.getPropertyValue('--noise-moderate').trim(), textColor: 'black', recommendation: "Levels are typical for city areas. Noise is noticeable." };
+            if (db <= 85) return { text: 'Loud', color: rootStyles.getPropertyValue('--loud').trim(), textColor: 'black', recommendation: "Prolonged exposure may cause annoyance. Consider limiting time." };
+            if (db <= 110) return { text: 'Very Loud', color: rootStyles.getPropertyValue('--very-loud').trim(), textColor: 'white', recommendation: "Risk of hearing damage. Hearing protection is recommended." };
+            return { text: 'Harmful', color: rootStyles.getPropertyValue('--harmful').trim(), textColor: 'white', recommendation: "Serious risk of hearing damage. Avoid all exposure." };
+        }
+
+        // --- Function to update all cards based on a station name ---
+        function updateDisplay(stationName) {
+            const station = allStationData.get(stationName);
+
+            // Get all card elements
+            const aqiCityName = document.getElementById('aqi-city-name');
+            const aqiLiveValue = document.getElementById('aqi-live-value');
+            const pm10Value = document.getElementById('pm10-value');
+            const pm25Value = document.getElementById('pm25-value');
+            const aqiLiveStatus = document.getElementById('aqi-live-status');
+            const aqiPointer = document.getElementById('aqi-pointer');
+            const aqiRecommendation = document.getElementById('aqi-recommendation');
+
+            const npiCityName = document.getElementById('npi-city-name');
+            const npiLiveValue = document.getElementById('npi-live-value');
+            const npiLiveStatus = document.getElementById('npi-live-status');
+            const npiPointer = document.getElementById('npi-pointer');
+            const npiRecommendation = document.getElementById('npi-recommendation');
+
+            if (station) {
+                // --- Update AQI Card ---
+                const aqi = station.aqiValue;
+                const aqiStatusInfo = getAqiInfo(aqi);
+
+                aqiCityName.textContent = station.stationName;
+                aqiLiveValue.textContent = aqi.toFixed(0);
+                pm10Value.textContent = station.pm10.toFixed(1);
+                pm25Value.textContent = station.pm25.toFixed(1);
+
+                aqiLiveStatus.textContent = aqiStatusInfo.text;
+                aqiLiveStatus.style.backgroundColor = aqiStatusInfo.color;
+                aqiLiveStatus.style.color = aqiStatusInfo.textColor;
+
+                aqiRecommendation.textContent = aqiStatusInfo.recommendation;
+                aqiRecommendation.style.color = aqiStatusInfo.color;
+                aqiRecommendation.style.borderLeftColor = aqiStatusInfo.color;
+
+                const aqiPercentage = Math.min(aqi / 500, 1) * 100;
+                aqiPointer.style.left = `${aqiPercentage}%`;
+
+                // --- Update Noise Card ---
+                const noise = station.noiseLevel;
+                const noiseStatusInfo = getNoiseInfo(noise);
+
+                npiCityName.textContent = station.stationName;
+                npiLiveValue.innerHTML = `${noise.toFixed(1)} <small>dB</small>`;
+
+                npiLiveStatus.textContent = noiseStatusInfo.text;
+                npiLiveStatus.style.backgroundColor = noiseStatusInfo.color;
+                npiLiveStatus.style.color = noiseStatusInfo.textColor;
+
+                npiRecommendation.textContent = noiseStatusInfo.recommendation;
+                npiRecommendation.style.color = noiseStatusInfo.color;
+                npiRecommendation.style.borderLeftColor = noiseStatusInfo.color;
+
+                const dbPercentage = Math.min(noise / 140, 1) * 100;
+                npiPointer.style.left = `${dbPercentage}%`;
+
+            } else {
+                // --- Handle Station Not Found ---
+                aqiCityName.textContent = "Not Found";
+                aqiLiveValue.textContent = "--";
+                pm10Value.textContent = "--";
+                pm25Value.textContent = "--";
+                aqiLiveStatus.textContent = "N/A";
+                aqiLiveStatus.style.backgroundColor = "var(--muted)";
+                aqiLiveStatus.style.color = "white";
+                aqiRecommendation.textContent = "No data available for this station.";
+                aqiRecommendation.style.color = "var(--muted)";
+                aqiRecommendation.style.borderLeftColor = "var(--muted)";
+                aqiPointer.style.left = `0%`;
+
+                npiCityName.textContent = "Not Found";
+                npiLiveValue.innerHTML = `-- <small>dB</small>`;
+                npiLiveStatus.textContent = "N/A";
+                npiLiveStatus.style.backgroundColor = "var(--muted)";
+                npiLiveStatus.style.color = "white";
+                npiRecommendation.textContent = "No data available for this station.";
+                npiRecommendation.style.color = "var(--muted)";
+                npiRecommendation.style.borderLeftColor = "var(--muted)";
+                npiPointer.style.left = `0%`;
+            }
+        }
+
+        // --- Function to render snapshot cards ---
+        function renderSnapshots() {
+            const stations = Array.from(allStationData.values());
+            if (stations.length === 0) return;
+
+            // --- Populate AQI Snapshot ---
+            const aqiBestList = document.getElementById('aqi-best-list');
+            const aqiWorstList = document.getElementById('aqi-worst-list');
+
+            const sortedByAqi = [...stations].sort((a, b) => a.aqiValue - b.aqiValue);
+            const bestAqi = sortedByAqi.slice(0, 3);
+            const worstAqi = sortedByAqi.slice(-3).reverse();
+
+            aqiBestList.innerHTML = bestAqi.map(s => `
+                <li class="snapshot-item good">
+                    <span class="snapshot-item-name">${s.stationName}</span>
+                    <span class="snapshot-item-value">${s.aqiValue.toFixed(0)}</span>
+                </li>`).join('');
+
+            aqiWorstList.innerHTML = worstAqi.map(s => `
+                <li class="snapshot-item bad">
+                    <span class="snapshot-item-name">${s.stationName}</span>
+                    <span class="snapshot-item-value">${s.aqiValue.toFixed(0)}</span>
+                </li>`).join('');
+
+            // --- Populate Noise Snapshot ---
+            const noiseBestList = document.getElementById('noise-best-list');
+            const noiseWorstList = document.getElementById('noise-worst-list');
+
+            const sortedByNoise = [...stations].sort((a, b) => a.noiseLevel - b.noiseLevel);
+            const bestNoise = sortedByNoise.slice(0, 3);
+            const worstNoise = sortedByNoise.slice(-3).reverse();
+
+            noiseBestList.innerHTML = bestNoise.map(s => `
+                <li class="snapshot-item quiet">
+                    <span class="snapshot-item-name">${s.stationName}</span>
+                    <span class="snapshot-item-value">${s.noiseLevel.toFixed(1)} dB</span>
+                </li>`).join('');
+
+            noiseWorstList.innerHTML = worstNoise.map(s => `
+                <li class="snapshot-item loud">
+                    <span class="snapshot-item-name">${s.stationName}</span>
+                    <span class="snapshot-item-value">${s.noiseLevel.toFixed(1)} dB</span>
+                </li>`).join('');
+        }
+
+        // --- Function to fetch data from API ---
+        async function fetchAndProcessData(defaultStationName) {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                // Process data to get latest for each station
+                data.forEach(item => {
+                    const existing = allStationData.get(item.stationName);
+                    if (!existing || new Date(item.timestamp) > new Date(existing.timestamp)) {
+                        allStationData.set(item.stationName, item);
+                    }
+                });
+
+                // Update display with default station
+                updateDisplay(defaultStationName);
+
+                // Render snapshots after data is loaded
+                renderSnapshots();
+
+                // Start the alert system
+                const highAqiStations = Array.from(allStationData.values())
+                    .filter(s => s.aqiValue > 95);
+                if (highAqiStations.length > 0) {
+                    initializeAlerts(highAqiStations);
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch station data:", error);
+                // Display error on cards
+                document.getElementById('aqi-city-name').textContent = "Error";
+                document.getElementById('aqi-live-value').textContent = "??";
+                document.getElementById('aqi-recommendation').textContent = "Could not fetch data from server.";
+                document.getElementById('npi-city-name').textContent = "Error";
+                document.getElementById('npi-live-value').innerHTML = `?? <small>dB</small>`;
+                document.getElementById('npi-recommendation').textContent = "Could not fetch data from server.";
+            }
+        }
+
+        // --- Search form listener ---
+        const searchForm = document.getElementById('searchForm');
+        const citySearchInput = document.getElementById('citySearch');
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = citySearchInput.value.trim();
+            if (query) {
+                let foundStationName = null;
+                const lowerQuery = query.toLowerCase();
+
+                for (const stationName of allStationData.keys()) {
+                    if (stationName.toLowerCase().includes(lowerQuery)) {
+                        foundStationName = stationName;
+                        break;
+                    }
+                }
+
+                if (foundStationName) {
+                    updateDisplay(foundStationName);
+                    citySearchInput.value = ''; // Clear search
+                } else {
+                    updateDisplay(query); // This will show "Not Found"
+                }
+            }
+        });
+
+        // --- "Detect My Location" listener ---
+        function handleLocationDetect(e) {
+            const btn = e.currentTarget;
+            btn.classList.add('loading');
+            btn.innerHTML = `<i class='bx bx-loader-alt'></i>`;
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userCoords = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    };
+
+                    let closestStation = null;
+                    let minDistance = Infinity;
+
+                    for (const station of allStationData.values()) {
+                        const distance = haversineDistance(userCoords, { lat: station.lat, lon: station.lon });
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestStation = station;
+                        }
+                    }
+
+                    if (closestStation) {
+                        updateDisplay(closestStation.stationName);
+                    } else {
+                        alert("Could not find a nearby station in our database.");
+                    }
+
+                    btn.classList.remove('loading');
+                    btn.innerHTML = `<i class='bx bx-current-location'></i>`;
+                },
+                (error) => {
+                    console.error("Error getting location:", error);
+                    alert("Could not get your location. Please ensure you have enabled location services.");
+                    btn.classList.remove('loading');
+                    btn.innerHTML = `<i class='bx bx-current-location'></i>`;
+                }
+            );
+        }
+
+        document.getElementById('detect-location-btn-aqi').addEventListener('click', handleLocationDetect);
+        document.getElementById('detect-location-btn-noise').addEventListener('click', handleLocationDetect);
+
+
+        // --- View Toggling Logic ---
+        const aqiToggleBtn = document.getElementById('home-aqi-toggle');
+        const noiseToggleBtn = document.getElementById('home-noise-toggle');
+        const aqiView = document.getElementById('aqi-home-view');
+        const noiseView = document.getElementById('noise-home-view');
+
+        aqiToggleBtn.addEventListener('click', () => {
+            if (aqiToggleBtn.classList.contains('active')) return;
+            aqiToggleBtn.classList.add('active');
+            noiseToggleBtn.classList.remove('active');
+            aqiView.style.display = 'block';
+            noiseView.style.display = 'none';
+        });
+
+        noiseToggleBtn.addEventListener('click', () => {
+            if (noiseToggleBtn.classList.contains('active')) return;
+            noiseToggleBtn.classList.add('active');
+            aqiToggleBtn.classList.remove('active');
+            noiseView.style.display = 'block';
+            aqiView.style.display = 'none';
+        });
+
+
+        // --- Alert Functions ---
+        const alertContainer = document.getElementById('alert-container');
+
+        function showAlert(station) {
+            const aqiInfo = getAqiInfo(station.aqiValue);
+
+            const alert = document.createElement('div');
+            alert.className = 'toast-alert';
+            alert.style.borderLeftColor = aqiInfo.color;
+
+            alert.innerHTML = `
+                <div class="toast-alert-icon" style="color: ${aqiInfo.color};">
+                    <i class='bx bxs-error-alt'></i>
+                </div>
+                <div class="toast-alert-content">
+                    <h5>High AQI Alert</h5>
+                    <p>
+                        <strong>${station.stationName}: <span style="color: ${aqiInfo.color};">${station.aqiValue.toFixed(0)}</span></strong>
+                    </p>
+                    <p class="mt-2">${aqiInfo.recommendation}</p>
+                </div>
+            `;
+
+            alertContainer.prepend(alert);
+
+            // Trigger the "show" animation
+            setTimeout(() => alert.classList.add('show'), 100);
+
+            // Set timeout to make it disappear after 3 seconds
+            setTimeout(() => {
+                alert.classList.remove('show');
+                alert.classList.add('exit');
+                // Remove from DOM after animation
+                setTimeout(() => alert.remove(), 500);
+            }, 3000); // 3 seconds visible
+        }
+
+        function initializeAlerts(highAqiStations) {
+            let alertIndex = 0;
+            const VISIBLE_TIME = 3000; // 3 seconds
+            const WAIT_TIME = 5000;    // 5 seconds
+            const TOTAL_CYCLE = VISIBLE_TIME + WAIT_TIME; // 8 seconds
+
+            // Show the first alert after 5 seconds
+            setTimeout(() => {
+                showAlert(highAqiStations[alertIndex]);
+                alertIndex = (alertIndex + 1) % highAqiStations.length;
+
+                // Start the interval for all subsequent alerts
+                // This interval will run every 8 seconds (5s wait + 3s visible)
+                setInterval(() => {
+                    showAlert(highAqiStations[alertIndex]);
+                    alertIndex = (alertIndex + 1) % highAqiStations.length;
+                }, TOTAL_CYCLE);
+
+            }, WAIT_TIME); // Initial 5s delay
+        }
+
+
+        // --- Fact Bot Logic (Togglable Widget) ---
+        const FACTS = [
+            "An AQI score of 0-50 is 'Good' with minimal risk. 301+ is 'Hazardous' and a health emergency.",
+            "Noise pollution (NPI) is measured in decibels (dB). A 10 dB increase represents a 10-fold increase in sound intensity.",
+            "PM2.5 particles are so small (less than 2.5 micrometers) they can enter your bloodstream and affect organs like the heart and brain.",
+            "Prolonged exposure to noise above 85 dB (like heavy city traffic) can cause permanent hearing loss.",
+            "Indoor air can be 2 to 5 times more polluted than outdoor air. Ensure good ventilation!",
+            "Trees and shrubs are not just beautiful; they are natural sound barriers and can help filter air pollutants.",
+            "Using public transport, carpooling, or walking helps reduce both air and noise pollution from vehicle emissions.",
+            "Chronic noise exposure can increase stress levels, high blood pressure, and risk of heart disease."
+        ];
+
+        const factBotBtn = document.getElementById('fact-bot-btn');
+        const factWidget = document.getElementById('fact-widget');
+        const factWidgetClose = document.getElementById('fact-widget-close');
+        const factWidgetText = document.getElementById('fact-widget-text');
+
+        let currentFactIndex = 0;
+        let factInterval = null;
+
+        function showNextFact() {
+            currentFactIndex = (currentFactIndex + 1) % FACTS.length;
+            if (factWidgetText) {
+                factWidgetText.style.opacity = 0; // Fade out
+
+                setTimeout(() => {
+                    factWidgetText.textContent = FACTS[currentFactIndex];
+                    factWidgetText.style.opacity = 1; // Fade in
+                }, 300); // Wait for fade out
+            }
+        }
+
+        function startFactTimer() {
+            // Clear any old timer
+            if (factInterval) clearInterval(factInterval);
+            // Show the first fact immediately
+            factWidgetText.textContent = FACTS[currentFactIndex];
+            factWidgetText.style.opacity = 1;
+            // Start a new 5-second timer
+            factInterval = setInterval(showNextFact, 5000);
+        }
+
+        function stopFactTimer() {
+            if (factInterval) clearInterval(factInterval);
+        }
+
+        function openFactWidget() {
+            factWidget.classList.add('active'); // Show the widget
+            startFactTimer(); // Start the 5-second auto-cycle
+        }
+
+        function closeFactWidget() {
+            stopFactTimer(); // Stop the auto-cycle
+            factWidget.classList.remove('active'); // Hide the widget
+        }
+
+        // --- Event Listeners for Fact Bot ---
+        factBotBtn.addEventListener('click', () => {
+            // Toggle the widget
+            if (factWidget.classList.contains('active')) {
+                closeFactWidget();
+            } else {
+                openFactWidget();
+            }
+        });
+
+        factWidgetClose.addEventListener('click', closeFactWidget);
+
+
+        // --- Profile Dropdown Logic ---
+        const profileBtn = document.getElementById('profile-btn');
+        const profileMenu = document.getElementById('profile-menu');
+
+        async function fetchUserProfile() {
+            try {
+                // Simulate successful API response for demonstration
+                // In production, replace with: const response = await fetch(USER_API_URL);
+                const mockUser = {
+                    name: "Demo User",
+                    email: "demo@ecogauge.com"
+                };
+                
+                // Simulate delay
+                setTimeout(() => {
+                    document.getElementById('profile-name').textContent = mockUser.name;
+                    document.getElementById('profile-email').textContent = mockUser.email;
+                }, 500);
+
+            } catch (error) {
+                console.error('Failed to fetch user profile:', error);
+                document.getElementById('profile-name').textContent = 'Error';
+                document.getElementById('profile-email').textContent = 'Could not load user';
+            }
+        }
+
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent window listener from closing it
+            profileMenu.classList.toggle('active');
+        });
+
+        // Close dropdown if clicking outside
+        window.addEventListener('click', (e) => {
+            if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+                profileMenu.classList.remove('active');
+            }
+        });
+
+        // --- Theme Toggle Logic ---
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+
+        // Check for saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            body.classList.add('light-theme');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('light-theme');
+            const isLight = body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        });
+
+
+        // --- Start the data fetch ---
+        fetchAndProcessData('Dadar (C)'); // Load "Dadar (C)" as the default
+        fetchUserProfile(); // Fetch user info on load
+
+        // --- Educational Toggles ---
+        document.querySelectorAll('.edu-toggle-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Get the parent group of this button
+                const group = this.parentElement;
+                
+                // Remove active class from siblings in the SAME group
+                group.querySelectorAll('.edu-toggle-btn').forEach(btn => btn.classList.remove('active'));
+                
+                this.classList.add('active');
+                
+                // Determine context (AQI or Noise) based on the target ID
+                const targetId = this.getAttribute('data-target');
+                const isNoise = targetId.startsWith('noise-');
+                
+                // Select sections within the appropriate container
+                // We'll search the document, but ensure IDs are unique
+                document.querySelectorAll('.edu-section').forEach(section => {
+                    // Only toggle sections that match the context (AQI vs Noise)
+                    // If target is noise-causes, we shouldn't touch "causes" (AQI)
+                    if (section.id === targetId) {
+                        section.classList.add('active');
+                    } else if (isNoise && section.id.startsWith('noise-')) {
+                        section.classList.remove('active');
+                    } else if (!isNoise && !section.id.startsWith('noise-')) {
+                        section.classList.remove('active');
+                    }
+                });
+            });
+        });
+
+        // --- Parallax Effect ---
+        const heroImages = document.querySelectorAll('.hero-image');
+        window.addEventListener('scroll', () => {
+            const scroll = window.scrollY;
+            heroImages.forEach(img => {
+                if (img.offsetParent !== null) { 
+                    img.style.transform = `translateY(${scroll * 0.5}px)`; 
+                }
+            });
+        });
+
+    });
+</script>
+</body>
+
+</html>

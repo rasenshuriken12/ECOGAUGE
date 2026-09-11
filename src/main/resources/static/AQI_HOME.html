@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>EcoGauge - Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card: #111833;
+            --header-bg: #161b22;
+            --border-color: rgba(255, 255, 255, .1);
+            --muted: #97a3b6;
+            --text: #e8ecf6;
+
+            /* Shining Light Blue Theme (Default) */
+            --accent1: #29B6F6;      /* Main light blue for borders, active states */
+            --accent2: #81D4FA;      /* Lighter blue for hovers, text */
+            --logo-color: #29B6F6;   /* Logo color */
+            --glow-color-rgba: rgba(41, 182, 246, 0.4); /* RGBA version for glows */
+
+            --nav-accent1: var(--accent1);
+            --nav-accent2: var(--accent2);
+            --nav-glow-color-rgba: var(--glow-color-rgba);
+
+            /* AQI Palette */
+            --good: #34d399;
+            --moderate: #facc15;
+            --poor: #fb923c;
+            --unhealthy: #ef4444;
+            --severe: #a855f7;
+            --hazardous: #800000;
+
+            /* NPI Palette */
+            --quiet: #34d399;
+            --loud: #fb923c;
+            --very-loud: #ef4444;
+            --harmful: #a855f7;
+            --noise-moderate: #facc15; /* Added for noise scale */
+        }
+        *{ box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            background: linear-gradient(120deg, #0b1020 0%, #0e1430 60%, #151a3a 100%);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main {
+            flex: 1;
+        }
+
+        /* --- Alert Notification Styles --- */
+        .alert-container {
+            position: fixed;
+            top: 80px; /* Below the navbar */
+            right: 20px;
+            z-index: 1050;
+            width: 350px;
+            max-width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .toast-alert {
+            background: var(--card);
+            border: 1px solid var(--border-color);
+            border-left-width: 5px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            display: flex;
+            padding: 1.25rem;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .toast-alert.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .toast-alert.exit {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        .toast-alert-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        .toast-alert-content h5 {
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 0.25rem 0;
+        }
+        .toast-alert-content p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin: 0;
+        }
+
+        /* --- Header/Nav Styles --- */
+        .site-nav {
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(6px);
+            background: rgba(22, 27, 34, .7);
+        }
+        .nav-container {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            width: 100%;
+            gap: 1rem;
+        }
+        .logo {
+            grid-column: 1 / 2;
+            justify-self: start;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--logo-color);
+            text-decoration: none;
+            transition: filter 0.2s ease;
+        }
+        .logo:hover {
+            filter: brightness(1.2);
+        }
+        .nav-controls {
+            grid-column: 2 / 3;
+            justify-self: center;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .nav-search-wrapper {
+            grid-column: 3 / 4;
+            justify-self: end;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .toggle-btn-group {
+            display: inline-flex;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--nav-accent1);
+            box-shadow: 0 0 8px 2px var(--nav-glow-color-rgba);
+        }
+        .toggle-btn {
+            padding: 6px 16px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            background-color: transparent;
+            color: var(--nav-accent2);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        .toggle-btn:not(:last-child) {
+            border-right: 1px solid var(--nav-accent1);
+        }
+        .toggle-btn.active {
+            background-color: var(--nav-accent1);
+            color: #FFFFFF;
+        }
+        .toggle-btn:hover:not(.active) {
+            background-color: rgba(41, 182, 246, 0.2);
+            color: white;
+        }
+        .nav-btn {
+            cursor: pointer;
+            border: 1px solid var(--nav-accent1);
+            color: var(--nav-accent2);
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+        .nav-btn:hover {
+            background-color: rgba(41, 182, 246, 0.2);
+            color: white;
+            box-shadow: 0 0 8px 2px var(--glow-color-rgba);
+        }
+        .search-form {
+            position: relative;
+        }
+        .search-form input {
+            border-radius: 20px;
+            padding-left: 15px;
+            padding-right: 45px;
+            background-color: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: var(--text);
+            transition: all 0.2s ease-in-out;
+            height: 38px;
+        }
+        .search-form input:focus {
+            border-color: var(--accent1);
+            background-color: var(--text);
+            color: var(--card);
+            outline: none;
+            box-shadow: none;
+        }
+        .search-form input::placeholder {
+            color: var(--muted);
+        }
+        .search-form button {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--nav-accent1);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .search-form button:hover {
+            background-color: #0091ea;
+        }
+
+        /* --- Profile Dropdown Styles --- */
+        .profile-dropdown {
+            position: relative;
+        }
+        .profile-btn {
+            background: var(--card);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            color: var(--muted); /* <-- CHANGED */
+        }
+        .profile-btn:hover {
+            border-color: var(--accent1);
+            color: var(--accent1); /* <-- CHANGED */
+        }
+        .profile-btn i { /* <-- CHANGED */
+            font-size: 1.8rem;
+        }
+        .profile-menu {
+            display: none; /* Hidden by default */
+            position: absolute;
+            top: 55px;
+            right: 0;
+            width: 260px;
+            background: var(--card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.25);
+            z-index: 100;
+        }
+        .profile-menu.active {
+            display: block; /* Show with JS */
+        }
+        .profile-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .profile-name {
+            font-weight: 600;
+            color: var(--text);
+            margin: 0;
+            font-size: 1rem;
+        }
+        .profile-email {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin: 0;
+        }
+        .profile-menu-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+        .profile-menu-item:hover {
+            background-color: rgba(255,255,255,0.05);
+            color: var(--text);
+        }
+        .profile-menu-item.logout {
+            color: var(--unhealthy);
+            border-top: 1px solid var(--border-color);
+        }
+        .profile-menu-item.logout:hover {
+            color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+
+        /* --- Main Content Styles --- */
+        main { padding: 20px 24px 40px; }
+
+        .detect-location-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--muted);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .detect-location-btn:hover {
+            color: var(--accent2);
+            border-color: var(--accent2);
+            box-shadow: 0 0 10px 2px var(--glow-color-rgba);
+        }
+        .detect-location-btn.loading {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+
+        .hero-header {
+            position: relative;
+            text-align: center;
+            color: white;
+            border-radius: 18px;
+            overflow: hidden;
+            margin: 0 auto 24px;
+            width: 100%;
+            height: 350px;
+        }
+        .hero-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.6);
+        }
+        .hero-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+        }
+        .hero-title {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 800;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .hero-subtitle {
+            font-size: 1.2rem;
+            margin-top: 1rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.5);
+        }
+
+        .content-box {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 18px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 30px rgba(0,0,0,.25);
+            margin-bottom: 24px;
+        }
+
+        /* Live AQI Container */
+        .live-aqi-container, .live-npi-container {
+            color: white;
+        }
+        .live-aqi-container h2, .live-npi-container h2 {
+            color: white;
+            border: none;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+            position: relative;
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+        .live-aqi-container h2::after, .live-npi-container h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, var(--accent1), var(--accent2));
+        }
+        .aqi-main-info, .npi-main-info {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .aqi-value, .npi-value {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .npi-value small {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--muted);
+        }
+        .aqi-status-wrapper, .npi-status-wrapper {
+            display: block;
+            margin-bottom: 8px;
+        }
+        .aqi-status-box, .npi-status-box {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .recommendation-text {
+            font-size: 1.1rem;
+            color: var(--text);
+            margin-bottom: 25px;
+            margin-top: -10px; /* Pull it closer to the main info */
+            border-left: 3px solid var(--accent1);
+            padding-left: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .pollutant-info {
+            font-size: 1.1rem;
+            margin-bottom: 35px;
+        }
+        .noise-source-info {
+            font-size: 1.1rem;
+            margin-bottom: 35px;
+        }
+
+        .aqi-scale-wrapper, .npi-scale-wrapper {
+            position: relative;
+            padding-bottom: 25px;
+        }
+        .aqi-scale, .npi-scale {
+            height: 10px;
+            border-radius: 5px;
+            display: flex;
+            overflow: hidden;
+        }
+        .aqi-scale-segment, .npi-scale-segment {
+            height: 100%;
+        }
+        .aqi-scale-pointer, .npi-scale-pointer {
+            position: absolute;
+            top: -3px;
+            width: 16px;
+            height: 16px;
+            background-color: white;
+            border-radius: 50%;
+            border: 2px solid var(--card);
+            transform: translateX(-50%);
+            transition: left 0.5s ease-in-out;
+            cursor: pointer;
+            animation: pulse 2s infinite;
+        }
+
+        .aqi-scale-labels, .npi-scale-labels {
+            position: absolute;
+            width: 100%;
+            bottom: 0;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        .aqi-scale-labels span, .npi-scale-labels span {
+            position: absolute;
+            transform: translateX(-50%);
+        }
+        .aqi-scale-labels span:first-child, .npi-scale-labels span:first-child { transform: translateX(0); }
+        .aqi-scale-labels span:last-child, .npi-scale-labels span:last-child { transform: translateX(-100%); }
+
+
+        /* --- Snapshot Card Styles --- */
+        .snapshot-title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 24px;
+        }
+        .snapshot-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .snapshot-column h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .snapshot-column h4 i {
+            font-size: 1.3rem;
+        }
+        .snapshot-column ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            space-y: 8px;
+        }
+        .snapshot-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border-left: 4px solid var(--border-color);
+        }
+        .snapshot-item-name {
+            font-weight: 500;
+            color: var(--text);
+        }
+        .snapshot-item-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .snapshot-item.good .snapshot-item-value { color: var(--good); }
+        .snapshot-item.good { border-left-color: var(--good); }
+        .snapshot-item.bad .snapshot-item-value { color: var(--unhealthy); }
+        .snapshot-item.bad { border-left-color: var(--unhealthy); }
+        .snapshot-item.quiet .snapshot-item-value { color: var(--quiet); }
+        .snapshot-item.quiet { border-left-color: var(--quiet); }
+        .snapshot-item.loud .snapshot-item-value { color: var(--very-loud); }
+        .snapshot-item.loud { border-left-color: var(--very-loud); }
+
+        @media (max-width: 600px) {
+            .snapshot-grid { grid-template-columns: 1fr; }
+        }
+
+        /* --- Removed Chart & Edu Sections --- */
+        .edu-section, .chart-header, #aqiTrendChart, #npiTrendChart,
+        #aqi-timeframe-selector, #noise-timeframe-selector,
+        #aqi-edu-toggle-group, #noise-edu-toggle-group {
+            display: none !important;
+        }
+        .content-box.edu-container {
+            display: none;
+        }
+
+        /* Footer Styles */
+        .site-footer {
+            background-color: var(--header-bg);
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            border-top: 1px solid var(--border-color);
+        }
+        .site-footer p {
+            margin: 0;
+            color: var(--muted);
+        }
+        .site-footer a {
+            color: var(--accent1);
+            text-decoration: none;
+            margin: 0 8px;
+            transition: color 0.2s ease, text-decoration 0.2s ease;
+        }
+        .site-footer a:hover {
+            color: var(--accent2);
+            text-decoration: underline;
+        }
+
+        /* --- Fact Bot Styles (Restored) --- */
+        #fact-bot-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--accent1), var(--nav-accent1));
+            color: white;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease;
+            z-index: 999;
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+        #fact-bot-btn:hover {
+            transform: scale(1.1);
+            animation-play-state: paused;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 15px 0px var(--glow-color-rgba); }
+            50% { box-shadow: 0 0 25px 8px var(--glow-color-rgba); }
+            100% { box-shadow: 0 0 15px 0px var(--glow-color-rgba); }
+        }
+
+        /* --- MODIFIED: Fact Modal (No Blur) --- */
+        #fact-widget {
+            position: fixed;
+            bottom: 100px; /* Position above the button */
+            right: 30px;
+            width: 350px;
+            max-width: 90%;
+            background: var(--card);
+            border: 1px solid var(--border-color);
+            border-left: 5px solid var(--nav-accent1);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            display: flex;
+            padding: 1.25rem;
+            z-index: 998;
+
+            /* Hidden by default */
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            transition: all 0.3s ease-out;
+        }
+        #fact-widget.active { /* This class will be toggled */
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        #fact-widget-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #fact-widget-close:hover {
+            color: white;
+        }
+
+        #fact-widget-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+            color: var(--nav-accent1);
+            flex-shrink: 0;
+            margin-top: 5px; /* Align with text */
+        }
+        #fact-widget-content h5 {
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 0.25rem 0;
+        }
+        #fact-widget-content p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        /* --- Media Queries --- */
+        @media (max-width: 800px) {
+            .nav-btn .btn-text, .toggle-btn .btn-text { display: none; }
+            .nav-controls { gap: 0.5rem; }
+
+            #fact-bot-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 2rem;
+            }
+            #fact-widget {
+                left: 20px;
+                right: 20px;
+                bottom: 80px; /* Above new button position */
+                width: auto;
+            }
+        }
+        @media (max-width: 768px) {
+            .nav-container {
+                grid-template-columns: 1fr;
+                justify-items: center;
+                gap: 12px;
+            }
+            .logo, .nav-controls, .nav-search-wrapper {
+                grid-column: 1 / -1;
+                justify-self: center;
+            }
+            .nav-search-wrapper {
+                justify-self: stretch; /* Make search bar take more width */
+                width: 80%;
+                margin: 0 auto;
+            }
+            .search-form {
+                flex-grow: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div id="alert-container" class="alert-container"></div>
+
+<nav class="site-nav">
+    <div class="nav-container">
+        <a class="logo" href="/">EcoGauge</a>
+        <div class="nav-controls">
+            <div class="toggle-btn-group">
+                <button id="home-aqi-toggle" class="toggle-btn active"><i class='bx bx-wind'></i><span class="btn-text">AQI</span></button>
+                <button id="home-noise-toggle" class="toggle-btn"><i class='bx bxs-volume-full'></i><span class="btn-text">Noise</span></button>
+            </div>
+
+            <a class="nav-btn" href="/maps/AQI_MAP.html" role="button" title="Map View">
+                <i class='bx bxs-map'></i> <span class="btn-text">Map</span>
+            </a>
+
+            <a class="nav-btn" href="/user_ranking.html" role="button" title="View Rankings">
+                <i class='bx bxs-bar-chart-alt-2'></i> <span class="btn-text">Rankings</span>
+            </a>
+        </div>
+
+        <div class="nav-search-wrapper">
+            <form class="d-flex search-form" id="searchForm">
+                <input class="form-control" type="search" placeholder="Search Station..." id="citySearch">
+                <button type="submit"><i class='bx bx-search-alt-2'></i></button>
+            </form>
+
+            <div class="profile-dropdown">
+                <button class="profile-btn" id="profile-btn" title="Profile">
+                    <i class='bx bxs-user-circle'></i>
+                </button>
+                <div class="profile-menu" id="profile-menu">
+                    <div class="profile-header">
+                        <p class="profile-name" id="profile-name">Loading...</p>
+                        <p class="profile-email" id="profile-email">Loading...</p>
+                    </div>
+                    <a href="/logout" class="profile-menu-item logout">
+                        <i class='bx bx-log-out' style="vertical-align: middle; margin-right: 8px;"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main>
+    <div id="aqi-home-view">
+        <header class="hero-header">
+            <img src="https://moderndiplomacy.eu/wp-content/uploads/2021/09/air-pollution-china.jpg"
+                 alt="Aerial view of a modern city at dusk" class="hero-image">
+            <div class="hero-overlay">
+                <h1 class="hero-title">Welcome to EcoGauge</h1>
+                <p class="hero-subtitle">Your real-time guide to air quality and noise levels in your city.</p>
+            </div>
+        </header>
+
+        <div class="content-box">
+            <div class="live-aqi-container">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <h2 id="aqi-city-name">Loading...</h2>
+                    <button id="detect-location-btn-aqi" class="detect-location-btn" title="Detect My Location">
+                        <i class='bx bx-current-location'></i>
+                    </button>
+                </div>
+                <div class="aqi-main-info">
+                    <div id="aqi-live-value" class="aqi-value">--</div>
+                    <div class="aqi-status-wrapper">
+                        <span>Air Quality is</span>
+                        <div id="aqi-live-status" class="aqi-status-box">Loading...</div>
+                    </div>
+                </div>
+
+                <p id="aqi-recommendation" class="recommendation-text">Loading precaution...</p>
+
+                <div class="pollutant-info">
+                    <span><strong>PM10:</strong> <span id="pm10-value">--</span> µg/m³</span>
+                    <span class="ms-4"><strong>PM2.5:</strong> <span id="pm25-value">--</span> µg/m³</span>
+                </div>
+                <div class="aqi-scale-wrapper">
+                    <div class="aqi-scale">
+                        <div class="aqi-scale-segment" style="width: 10%; background-color: var(--good);"></div>
+                        <div class="aqi-scale-segment" style="width: 10%; background-color: var(--moderate);"></div>
+                        <div class="aqi-scale-segment" style="width: 10%; background-color: var(--poor);"></div>
+                        <div class="aqi-scale-segment" style="width: 10%; background-color: var(--unhealthy);"></div>
+                        <div class="aqi-scale-segment" style="width: 20%; background-color: var(--severe);"></div>
+                        <div class="aqi-scale-segment" style="width: 40%; background-color: var(--hazardous);"></div>
+                    </div>
+                    <div id="aqi-pointer" class="aqi-scale-pointer" style="left: 0%;"></div>
+                    <div class="aqi-scale-labels">
+                        <span style="left: 0%;">0</span>
+                        <span style="left: 10%;">50</span>
+                        <span style="left: 20%;">100</span>
+                        <span style="left: 30%;">150</span>
+                        <span style="left: 40%;">200</span>
+                        <span style="left: 60%;">300</span>
+                        <span style="left: 100%;">301+</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-box snapshot-card">
+            <h3 class="snapshot-title">City-Wide AQI Snapshot</h3>
+            <div class="snapshot-grid">
+                <div class="snapshot-column">
+                    <h4><i class='bx bxs-leaf' style='color: var(--good);'></i> Top 3 Cleanest Stations</h4>
+                    <ul id="aqi-best-list">
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                    </ul>
+                </div>
+                <div class="snapshot-column">
+                    <h4><i class='bx bxs-skull' style='color: var(--unhealthy);'></i> Top 3 Most Polluted Stations</h4>
+                    <ul id="aqi-worst-list">
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="noise-home-view" style="display: none;">
+        <header class="hero-header">
+            <img src="https://static.toiimg.com/thumb/msid-105136821,width-1280,height-720,resizemode-72/105136821.jpg"
+                 alt="Busy city street with traffic" class="hero-image">
+            <div class="hero-overlay">
+                <h1 class="hero-title">Welcome to EcoGauge</h1>
+                <p class="hero-subtitle">Your real-time guide to air quality and noise levels in your city.</p>
+            </div>
+        </header>
+
+        <div class="content-box">
+            <div class="live-npi-container">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <h2 id="npi-city-name">Loading...</h2>
+                    <button id="detect-location-btn-noise" class="detect-location-btn" title="Detect My Location">
+                        <i class='bx bx-current-location'></i>
+                    </button>
+                </div>
+                <div class="npi-main-info">
+                    <div id="npi-live-value" class="npi-value">-- <small>dB</small></div>
+                    <div class="npi-status-wrapper">
+                        <span>Noise Level is</span>
+                        <div id="npi-live-status" class="npi-status-box">Loading...</div>
+                    </div>
+                </div>
+
+                <p id="npi-recommendation" class="recommendation-text">Loading precaution...</p>
+
+                <div class="noise-source-info">
+                    <span><strong>Main Sources:</strong> <span id="noise-sources">Traffic, Crowds, Construction</span></span>
+                </div>
+                <div class="npi-scale-wrapper">
+                    <div class="npi-scale">
+                        <div class="npi-scale-segment" style="width: 35.7%; background-color: var(--quiet);"></div>
+                        <div class="npi-scale-segment" style="width: 14.3%; background-color: var(--noise-moderate);"></div>
+                        <div class="npi-scale-segment" style="width: 14.3%; background-color: var(--loud);"></div>
+                        <div class="npi-scale-segment" style="width: 14.3%; background-color: var(--very-loud);"></div>
+                        <div class="npi-scale-segment" style="width: 21.4%; background-color: var(--harmful);"></div>
+                    </div>
+                    <div id="npi-pointer" class="npi-scale-pointer" style="left: 0%;"></div>
+                    <div class="npi-scale-labels">
+                        <span style="left: 0%;">0</span>
+                        <span style="left: 35.7%;">50</span>
+                        <span style="left: 50%;">70</span>
+                        <span style="left: 64.3%;">90</span>
+                        <span style="left: 78.6%;">110</span>
+                        <span style="left: 100%;">140</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-box snapshot-card">
+            <h3 class="snapshot-title">City-Wide Noise Snapshot</h3>
+            <div class="snapshot-grid">
+                <div class="snapshot-column">
+                    <h4><i class='bx bxs-volume-low' style='color: var(--quiet);'></i> Top 3 Quietest Stations</h4>
+                    <ul id="noise-best-list">
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                    </ul>
+                </div>
+                <div class="snapshot-column">
+                    <h4><i class='bx bxs-volume-full' style='color: var(--very-loud);'></i> Top 3 Loudest Stations</h4>
+                    <ul id="noise-worst-list">
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                        <li class="snapshot-item"><span class="snapshot-item-name text-muted">Loading...</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; 2025 EcoGauge. All Rights Reserved.</p>
+    <p>
+        <a href="/Aboutus.html">About Us</a> |
+        <a href="/Contactus.html">Contact</a>
+
+    </p>
+</footer>
+
+<button id="fact-bot-btn" title="Did You Know?">
+    <i class='bx bx-bulb'></i>
+</button>
+
+<div id="fact-widget" class="fact-widget">
+    <button id="fact-widget-close" class="fact-widget-close" title="Close">&times;</button>
+    <div class="fact-widget-icon">
+        <i class='bx bx-bulb'></i>
+    </div>
+    <div class="fact-widget-content">
+        <h5>Did You Know?</h5>
+        <p id="fact-widget-text">Loading fact...</p>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const rootStyles = getComputedStyle(document.documentElement);
+
+        let allStationData = new Map();
+        const API_URL = '/api/stations';
+        const USER_API_URL = '/api/user/me';
+
+        // --- Haversine Distance Function ---
+        function haversineDistance(coords1, coords2) {
+            function toRad(x) { return x * Math.PI / 180; }
+            const R = 6371; // km
+            const dLat = toRad(coords2.lat - coords1.lat);
+            const dLon = toRad(coords2.lon - coords1.lon);
+            const lat1 = toRad(coords1.lat);
+            const lat2 = toRad(coords2.lat);
+
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        // --- Utility functions to get status ---
+        function getAqiInfo(aqi) {
+            if (aqi <= 50) return { text: 'Good', color: rootStyles.getPropertyValue('--good').trim(), textColor: 'black', recommendation: "Air quality is good. Enjoy outdoor activities." };
+            if (aqi <= 100) return { text: 'Moderate', color: rootStyles.getPropertyValue('--moderate').trim(), textColor: 'black', recommendation: "Unusually sensitive people should consider limiting prolonged outdoor exertion." };
+            if (aqi <= 150) return { text: 'Poor', color: rootStyles.getPropertyValue('--poor').trim(), textColor: 'black', recommendation: "Sensitive groups should reduce prolonged or heavy exertion." };
+            if (aqi <= 200) return { text: 'Unhealthy', color: rootStyles.getPropertyValue('--unhealthy').trim(), textColor: 'white', recommendation: "Everyone may begin to experience health effects; sensitive groups should avoid outdoor activities." };
+            if (aqi <= 300) return { text: 'Severe', color: rootStyles.getPropertyValue('--severe').trim(), textColor: 'white', recommendation: "Health warnings of emergency conditions. Everyone is more likely to be affected." };
+            return { text: 'Hazardous', color: rootStyles.getPropertyValue('--hazardous').trim(), textColor: 'white', recommendation: "Health alert: everyone should avoid all outdoor exertion." };
+        }
+
+        function getNoiseInfo(db) {
+            if (db <= 50) return { text: 'Quiet', color: rootStyles.getPropertyValue('--quiet').trim(), textColor: 'black', recommendation: "Noise levels are quiet. Ideal for all activities." };
+            if (db <= 70) return { text: 'Moderate', color: rootStyles.getPropertyValue('--noise-moderate').trim(), textColor: 'black', recommendation: "Levels are typical for city areas. Noise is noticeable." };
+            if (db <= 85) return { text: 'Loud', color: rootStyles.getPropertyValue('--loud').trim(), textColor: 'black', recommendation: "Prolonged exposure may cause annoyance. Consider limiting time." };
+            if (db <= 110) return { text: 'Very Loud', color: rootStyles.getPropertyValue('--very-loud').trim(), textColor: 'white', recommendation: "Risk of hearing damage. Hearing protection is recommended." };
+            return { text: 'Harmful', color: rootStyles.getPropertyValue('--harmful').trim(), textColor: 'white', recommendation: "Serious risk of hearing damage. Avoid all exposure." };
+        }
+
+        // --- Function to update all cards based on a station name ---
+        function updateDisplay(stationName) {
+            const station = allStationData.get(stationName);
+
+            // Get all card elements
+            const aqiCityName = document.getElementById('aqi-city-name');
+            const aqiLiveValue = document.getElementById('aqi-live-value');
+            const pm10Value = document.getElementById('pm10-value');
+            const pm25Value = document.getElementById('pm25-value');
+            const aqiLiveStatus = document.getElementById('aqi-live-status');
+            const aqiPointer = document.getElementById('aqi-pointer');
+            const aqiRecommendation = document.getElementById('aqi-recommendation');
+
+            const npiCityName = document.getElementById('npi-city-name');
+            const npiLiveValue = document.getElementById('npi-live-value');
+            const npiLiveStatus = document.getElementById('npi-live-status');
+            const npiPointer = document.getElementById('npi-pointer');
+            const npiRecommendation = document.getElementById('npi-recommendation');
+
+            if (station) {
+                // --- Update AQI Card ---
+                const aqi = station.aqiValue;
+                const aqiStatusInfo = getAqiInfo(aqi);
+
+                aqiCityName.textContent = station.stationName;
+                aqiLiveValue.textContent = aqi.toFixed(0);
+                pm10Value.textContent = station.pm10.toFixed(1);
+                pm25Value.textContent = station.pm25.toFixed(1);
+
+                aqiLiveStatus.textContent = aqiStatusInfo.text;
+                aqiLiveStatus.style.backgroundColor = aqiStatusInfo.color;
+                aqiLiveStatus.style.color = aqiStatusInfo.textColor;
+
+                aqiRecommendation.textContent = aqiStatusInfo.recommendation;
+                aqiRecommendation.style.color = aqiStatusInfo.color;
+                aqiRecommendation.style.borderLeftColor = aqiStatusInfo.color;
+
+                const aqiPercentage = Math.min(aqi / 500, 1) * 100;
+                aqiPointer.style.left = `${aqiPercentage}%`;
+
+                // --- Update Noise Card ---
+                const noise = station.noiseLevel;
+                const noiseStatusInfo = getNoiseInfo(noise);
+
+                npiCityName.textContent = station.stationName;
+                npiLiveValue.innerHTML = `${noise.toFixed(1)} <small>dB</small>`;
+
+                npiLiveStatus.textContent = noiseStatusInfo.text;
+                npiLiveStatus.style.backgroundColor = noiseStatusInfo.color;
+                npiLiveStatus.style.color = noiseStatusInfo.textColor;
+
+                npiRecommendation.textContent = noiseStatusInfo.recommendation;
+                npiRecommendation.style.color = noiseStatusInfo.color;
+                npiRecommendation.style.borderLeftColor = noiseStatusInfo.color;
+
+                const dbPercentage = Math.min(noise / 140, 1) * 100;
+                npiPointer.style.left = `${dbPercentage}%`;
+
+            } else {
+                // --- Handle Station Not Found ---
+                aqiCityName.textContent = "Not Found";
+                aqiLiveValue.textContent = "--";
+                pm10Value.textContent = "--";
+                pm25Value.textContent = "--";
+                aqiLiveStatus.textContent = "N/A";
+                aqiLiveStatus.style.backgroundColor = "var(--muted)";
+                aqiLiveStatus.style.color = "white";
+                aqiRecommendation.textContent = "No data available for this station.";
+                aqiRecommendation.style.color = "var(--muted)";
+                aqiRecommendation.style.borderLeftColor = "var(--muted)";
+                aqiPointer.style.left = `0%`;
+
+                npiCityName.textContent = "Not Found";
+                npiLiveValue.innerHTML = `-- <small>dB</small>`;
+                npiLiveStatus.textContent = "N/A";
+                npiLiveStatus.style.backgroundColor = "var(--muted)";
+                npiLiveStatus.style.color = "white";
+                npiRecommendation.textContent = "No data available for this station.";
+                npiRecommendation.style.color = "var(--muted)";
+                npiRecommendation.style.borderLeftColor = "var(--muted)";
+                npiPointer.style.left = `0%`;
+            }
+        }
+
+        // --- Function to render snapshot cards ---
+        function renderSnapshots() {
+            const stations = Array.from(allStationData.values());
+            if (stations.length === 0) return;
+
+            // --- Populate AQI Snapshot ---
+            const aqiBestList = document.getElementById('aqi-best-list');
+            const aqiWorstList = document.getElementById('aqi-worst-list');
+
+            const sortedByAqi = [...stations].sort((a, b) => a.aqiValue - b.aqiValue);
+            const bestAqi = sortedByAqi.slice(0, 3);
+            const worstAqi = sortedByAqi.slice(-3).reverse();
+
+            aqiBestList.innerHTML = bestAqi.map(s => `
+                <li class="snapshot-item good">
+                    <span class="snapshot-item-name">${s.stationName}</span>
+                    <span class="snapshot-item-value">${s.aqiValue.toFixed(0)}</span>
+                </li>`).join('');
+
+            aqiWorstList.innerHTML = worstAqi.map(s => `
+                <li class="snapshot-item bad">
+                    <span class="snapshot-item-name">${s.stationName}</span>
+                    <span class="snapshot-item-value">${s.aqiValue.toFixed(0)}</span>
+                </li>`).join('');
+
+            // --- Populate Noise Snapshot ---
+            const noiseBestList = document.getElementById('noise-best-list');
+            const noiseWorstList = document.getElementById('noise-worst-list');
+
+            const sortedByNoise = [...stations].sort((a, b) => a.noiseLevel - b.noiseLevel);
+            const bestNoise = sortedByNoise.slice(0, 3);
+            const worstNoise = sortedByNoise.slice(-3).reverse();
+
+            noiseBestList.innerHTML = bestNoise.map(s => `
+                <li class="snapshot-item quiet">
+                    <span class="snapshot-item-name">${s.stationName}</span>
+                    <span class="snapshot-item-value">${s.noiseLevel.toFixed(1)} dB</span>
+                </li>`).join('');
+
+            noiseWorstList.innerHTML = worstNoise.map(s => `
+                <li class="snapshot-item loud">
+                    <span class="snapshot-item-name">${s.stationName}</span>
+                    <span class="snapshot-item-value">${s.noiseLevel.toFixed(1)} dB</span>
+                </li>`).join('');
+        }
+
+        // --- Function to fetch data from API ---
+        async function fetchAndProcessData(defaultStationName) {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                // Process data to get latest for each station
+                data.forEach(item => {
+                    const existing = allStationData.get(item.stationName);
+                    if (!existing || new Date(item.timestamp) > new Date(existing.timestamp)) {
+                        allStationData.set(item.stationName, item);
+                    }
+                });
+
+                // Update display with default station
+                updateDisplay(defaultStationName);
+
+                // Render snapshots after data is loaded
+                renderSnapshots();
+
+                // Start the alert system
+                const highAqiStations = Array.from(allStationData.values())
+                    .filter(s => s.aqiValue > 95);
+                if (highAqiStations.length > 0) {
+                    initializeAlerts(highAqiStations);
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch station data:", error);
+                // Display error on cards
+                document.getElementById('aqi-city-name').textContent = "Error";
+                document.getElementById('aqi-live-value').textContent = "??";
+                document.getElementById('aqi-recommendation').textContent = "Could not fetch data from server.";
+                document.getElementById('npi-city-name').textContent = "Error";
+                document.getElementById('npi-live-value').innerHTML = `?? <small>dB</small>`;
+                document.getElementById('npi-recommendation').textContent = "Could not fetch data from server.";
+            }
+        }
+
+        // --- Search form listener ---
+        const searchForm = document.getElementById('searchForm');
+        const citySearchInput = document.getElementById('citySearch');
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = citySearchInput.value.trim();
+            if (query) {
+                let foundStationName = null;
+                const lowerQuery = query.toLowerCase();
+
+                for (const stationName of allStationData.keys()) {
+                    if (stationName.toLowerCase().includes(lowerQuery)) {
+                        foundStationName = stationName;
+                        break;
+                    }
+                }
+
+                if (foundStationName) {
+                    updateDisplay(foundStationName);
+                    citySearchInput.value = ''; // Clear search
+                } else {
+                    updateDisplay(query); // This will show "Not Found"
+                }
+            }
+        });
+
+// --- Enhanced Location Detection Function ---
+async function handleLocationDetect(e) {
+    const btn = e.currentTarget;
+    const originalHTML = btn.innerHTML;
+    
+    // Show loading state
+    btn.classList.add('loading');
+    btn.disabled = true;
+    btn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i>`;
+
+    try {
+        // Try high accuracy geolocation first
+        const userCoords = await getPreciseLocation();
+        
+        // Find closest station
+        const closestStation = findClosestStation(userCoords);
+        
+        if (closestStation) {
+            // Show success notification
+            const distance = haversineDistance(userCoords, closestStation);
+            showLocationSuccess(closestStation, distance);
+            
+            // Update display with closest station
+            updateDisplay(closestStation.stationName);
+        } else {
+            throw new Error("No nearby station found");
+        }
+        
+    } catch (error) {
+        console.error("Location detection failed:", error);
+        
+        // Try fallback methods
+        try {
+            const fallbackCoords = await getFallbackLocation();
+            const closestStation = findClosestStation(fallbackCoords);
+            
+            if (closestStation) {
+                updateDisplay(closestStation.stationName);
+                showAlertMessage(
+                    "Using approximate location (based on IP). For more accurate results, enable GPS in your browser settings.",
+                    "info"
+                );
+            } else {
+                throw new Error("Could not determine location");
+            }
+        } catch (fallbackError) {
+            showAlertMessage(
+                "Unable to detect your location. Please check your browser permissions or try selecting a station manually.",
+                "error"
+            );
+        }
+    } finally {
+        // Restore button state
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+// --- Helper Functions (Add these above handleLocationDetect) ---
+function getPreciseLocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            return reject(new Error("Geolocation not supported"));
+        }
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const accuracy = position.coords.accuracy;
+                const coords = {
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude,
+                    accuracy: accuracy
+                };
+                
+                // If accuracy is poor (more than 1000m), warn user
+                if (accuracy > 1000) {
+                    showAlertMessage(
+                        `Location accuracy is low (${Math.round(accuracy)}m). For better results, ensure GPS is enabled.`,
+                        "warning"
+                    );
+                }
+                
+                resolve(coords);
+            },
+            (error) => {
+                let errorMessage = "Could not get your location.";
+                
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = "Location permission denied. Please enable location services in your browser settings.";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = "Location information is unavailable.";
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = "Location request timed out. Please try again.";
+                        break;
+                }
+                
+                reject(new Error(errorMessage));
+            },
+            options
+        );
+    });
+}
+
+async function getFallbackLocation() {
+    const fallbackMethods = [tryIPApiCo, tryIPApi];
+    
+    for (const method of fallbackMethods) {
+        try {
+            const coords = await method();
+            if (coords) {
+                return coords;
+            }
+        } catch (error) {
+            console.warn(`${method.name} failed:`, error);
+        }
+    }
+    
+    throw new Error("All fallback methods failed");
+}
+
+async function tryIPApiCo() {
+    const response = await fetch('https://ipapi.co/json/');
+    const data = await response.json();
+    
+    if (data.latitude && data.longitude) {
+        return {
+            lat: parseFloat(data.latitude),
+            lon: parseFloat(data.longitude),
+            source: "ipapi.co",
+            city: data.city
+        };
+    }
+    throw new Error("No location data from ipapi.co");
+}
+
+async function tryIPApi() {
+    const response = await fetch('http://ip-api.com/json/?fields=status,message,lat,lon,city');
+    const data = await response.json();
+    
+    if (data.status === "success") {
+        return {
+            lat: data.lat,
+            lon: data.lon,
+            source: "ip-api.com",
+            city: data.city
+        };
+    }
+    throw new Error("No location data from ip-api.com");
+}
+
+function findClosestStation(userCoords) {
+    let closestStation = null;
+    let minDistance = Infinity;
+    
+    for (const station of allStationData.values()) {
+        const distance = haversineDistance(userCoords, { lat: station.lat, lon: station.lon });
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestStation = station;
+        }
+    }
+    
+    return closestStation;
+}
+
+function showLocationSuccess(station, distance) {
+    const distanceText = distance < 1 
+        ? `${(distance * 1000).toFixed(0)} meters away` 
+        : `${distance.toFixed(1)} km away`;
+    
+    showAlertMessage(
+        `Location detected! Showing data for ${station.stationName} (${distanceText})`,
+        "success"
+    );
+}
+
+function showAlertMessage(message, type = "info") {
+    // Use your existing alert system
+    const colors = {
+        success: "var(--good)",
+        warning: "var(--moderate)", 
+        error: "var(--unhealthy)",
+        info: "var(--accent1)"
+    };
+    
+    // Create a temporary alert (you can integrate this with your existing alert system)
+    const alert = document.createElement('div');
+    alert.className = 'toast-alert';
+    alert.style.borderLeftColor = colors[type];
+    alert.style.position = 'fixed';
+    alert.style.top = '100px';
+    alert.style.right = '20px';
+    alert.style.zIndex = '1000';
+
+    alert.innerHTML = `
+        <div class="toast-alert-icon" style="color: ${colors[type]};">
+            <i class='bx ${type === "success" ? "bx-check-circle" : type === "error" ? "bx-error" : "bx-info-circle"}'></i>
+        </div>
+        <div class="toast-alert-content">
+            <h5>${type.charAt(0).toUpperCase() + type.slice(1)}</h5>
+            <p>${message}</p>
+        </div>
+    `;
+
+    document.body.appendChild(alert);
+
+    // Trigger the "show" animation
+    setTimeout(() => alert.classList.add('show'), 100);
+
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        alert.classList.remove('show');
+        alert.classList.add('exit');
+        setTimeout(() => alert.remove(), 500);
+    }, 3000);
+}
+        // --- View Toggling Logic ---
+        const aqiToggleBtn = document.getElementById('home-aqi-toggle');
+        const noiseToggleBtn = document.getElementById('home-noise-toggle');
+        const aqiView = document.getElementById('aqi-home-view');
+        const noiseView = document.getElementById('noise-home-view');
+
+        aqiToggleBtn.addEventListener('click', () => {
+            if (aqiToggleBtn.classList.contains('active')) return;
+            aqiToggleBtn.classList.add('active');
+            noiseToggleBtn.classList.remove('active');
+            aqiView.style.display = 'block';
+            noiseView.style.display = 'none';
+        });
+
+        noiseToggleBtn.addEventListener('click', () => {
+            if (noiseToggleBtn.classList.contains('active')) return;
+            noiseToggleBtn.classList.add('active');
+            aqiToggleBtn.classList.remove('active');
+            noiseView.style.display = 'block';
+            aqiView.style.display = 'none';
+        });
+
+
+        // --- Alert Functions ---
+        const alertContainer = document.getElementById('alert-container');
+
+        function showAlert(station) {
+            const aqiInfo = getAqiInfo(station.aqiValue);
+
+            const alert = document.createElement('div');
+            alert.className = 'toast-alert';
+            alert.style.borderLeftColor = aqiInfo.color;
+
+            alert.innerHTML = `
+                <div class="toast-alert-icon" style="color: ${aqiInfo.color};">
+                    <i class='bx bxs-error-alt'></i>
+                </div>
+                <div class="toast-alert-content">
+                    <h5>High AQI Alert</h5>
+                    <p>
+                        <strong>${station.stationName}: <span style="color: ${aqiInfo.color};">${station.aqiValue.toFixed(0)}</span></strong>
+                    </p>
+                    <p class="mt-2">${aqiInfo.recommendation}</p>
+                </div>
+            `;
+
+            alertContainer.prepend(alert);
+
+            // Trigger the "show" animation
+            setTimeout(() => alert.classList.add('show'), 100);
+
+            // Set timeout to make it disappear after 3 seconds
+            setTimeout(() => {
+                alert.classList.remove('show');
+                alert.classList.add('exit');
+                // Remove from DOM after animation
+                setTimeout(() => alert.remove(), 500);
+            }, 3000); // 3 seconds visible
+        }
+
+        function initializeAlerts(highAqiStations) {
+            let alertIndex = 0;
+            const VISIBLE_TIME = 3000; // 3 seconds
+            const WAIT_TIME = 5000;    // 5 seconds
+            const TOTAL_CYCLE = VISIBLE_TIME + WAIT_TIME; // 8 seconds
+
+            // Show the first alert after 5 seconds
+            setTimeout(() => {
+                showAlert(highAqiStations[alertIndex]);
+                alertIndex = (alertIndex + 1) % highAqiStations.length;
+
+                // Start the interval for all subsequent alerts
+                // This interval will run every 8 seconds (5s wait + 3s visible)
+                setInterval(() => {
+                    showAlert(highAqiStations[alertIndex]);
+                    alertIndex = (alertIndex + 1) % highAqiStations.length;
+                }, TOTAL_CYCLE);
+
+            }, WAIT_TIME); // Initial 5s delay
+        }
+
+
+        // --- Fact Bot Logic (Togglable Widget) ---
+        const FACTS = [
+            "An AQI score of 0-50 is 'Good' with minimal risk. 301+ is 'Hazardous' and a health emergency.",
+            "Noise pollution (NPI) is measured in decibels (dB). A 10 dB increase represents a 10-fold increase in sound intensity.",
+            "PM2.5 particles are so small (less than 2.5 micrometers) they can enter your bloodstream and affect organs like the heart and brain.",
+            "Prolonged exposure to noise above 85 dB (like heavy city traffic) can cause permanent hearing loss.",
+            "Indoor air can be 2 to 5 times more polluted than outdoor air. Ensure good ventilation!",
+            "Trees and shrubs are not just beautiful; they are natural sound barriers and can help filter air pollutants.",
+            "Using public transport, carpooling, or walking helps reduce both air and noise pollution from vehicle emissions.",
+            "Chronic noise exposure can increase stress levels, high blood pressure, and risk of heart disease."
+        ];
+
+        const factBotBtn = document.getElementById('fact-bot-btn');
+        const factWidget = document.getElementById('fact-widget');
+        const factWidgetClose = document.getElementById('fact-widget-close');
+        const factWidgetText = document.getElementById('fact-widget-text');
+
+        let currentFactIndex = 0;
+        let factInterval = null;
+
+        function showNextFact() {
+            currentFactIndex = (currentFactIndex + 1) % FACTS.length;
+            if (factWidgetText) {
+                factWidgetText.style.opacity = 0; // Fade out
+
+                setTimeout(() => {
+                    factWidgetText.textContent = FACTS[currentFactIndex];
+                    factWidgetText.style.opacity = 1; // Fade in
+                }, 300); // Wait for fade out
+            }
+        }
+
+        function startFactTimer() {
+            // Clear any old timer
+            if (factInterval) clearInterval(factInterval);
+            // Show the first fact immediately
+            factWidgetText.textContent = FACTS[currentFactIndex];
+            factWidgetText.style.opacity = 1;
+            // Start a new 5-second timer
+            factInterval = setInterval(showNextFact, 5000);
+        }
+
+        function stopFactTimer() {
+            if (factInterval) clearInterval(factInterval);
+        }
+
+        function openFactWidget() {
+            factWidget.classList.add('active'); // Show the widget
+            startFactTimer(); // Start the 5-second auto-cycle
+        }
+
+        function closeFactWidget() {
+            stopFactTimer(); // Stop the auto-cycle
+            factWidget.classList.remove('active'); // Hide the widget
+        }
+
+        // --- Event Listeners for Fact Bot ---
+        factBotBtn.addEventListener('click', () => {
+            // Toggle the widget
+            if (factWidget.classList.contains('active')) {
+                closeFactWidget();
+            } else {
+                openFactWidget();
+            }
+        });
+
+        factWidgetClose.addEventListener('click', closeFactWidget);
+
+
+        // --- Profile Dropdown Logic ---
+        const profileBtn = document.getElementById('profile-btn');
+        const profileMenu = document.getElementById('profile-menu');
+
+        async function fetchUserProfile() {
+            try {
+                const response = await fetch(USER_API_URL);
+                if (!response.ok) {
+                    console.error('User not authenticated');
+                    document.getElementById('profile-name').textContent = 'Guest';
+                    document.getElementById('profile-email').textContent = 'Not logged in';
+                    return;
+                }
+                const user = await response.json();
+                document.getElementById('profile-name').textContent = user.name || 'User';
+                document.getElementById('profile-email').textContent = user.email || 'No email';
+            } catch (error) {
+                console.error('Failed to fetch user profile:', error);
+                document.getElementById('profile-name').textContent = 'Error';
+                document.getElementById('profile-email').textContent = 'Could not load user';
+            }
+        }
+
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent window listener from closing it
+            profileMenu.classList.toggle('active');
+        });
+
+        // Close dropdown if clicking outside
+        window.addEventListener('click', (e) => {
+            if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+                profileMenu.classList.remove('active');
+            }
+        });
+
+
+        // --- Start the data fetch ---
+        fetchAndProcessData('Dadar (C)'); // Load "Dadar (C)" as the default
+        fetchUserProfile(); // Fetch user info on load
+
+    });
+</script>
+</body>
+
+</html>

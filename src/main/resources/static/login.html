@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - EcoGauge</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card-bg: #111833;
+            --header-bg: #161b22;
+            --border-color: rgba(255, 255, 255, .1);
+            --muted: #97a3b6;
+            --text: #e8ecf6;
+            --accent1: #00aeff;
+            --accent2: #29B6F6;
+            --logo-color: #29B6F6;
+            --glow-color-rgba: rgba(41, 182, 246, 0.4);
+        }
+        body {
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            background: linear-gradient(120deg, #0b1020 0%, #0e1430 60%, #151a3a 100%);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .main-content-wrapper { flex: 1; }
+        .navbar {
+            background-color: rgba(22, 27, 34, .7);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .navbar-brand { color: var(--logo-color); font-weight: bold; }
+        .navbar-brand:hover { color: var(--accent2); }
+        .login-container {
+            background: radial-gradient(1200px 420px at -20% -20%, rgba(111, 86, 250, .08), transparent 60%),
+            radial-gradient(800px 300px at 120% 140%, rgba(79, 156, 255, .06), transparent 55%),
+            linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+            padding: 40px;
+            border-radius: 18px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+            max-width: 500px;
+            width: 100%;
+        }
+        .login-container h1 { font-size: 2rem; font-weight: 700; text-align: center; margin-bottom: 30px; }
+        .gradient-text {
+            background: linear-gradient(to right, var(--accent2), var(--accent1));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .form-control {
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .1);
+            color: var(--text);
+            border-radius: 8px;
+            padding: 12px 15px;
+        }
+        .form-control:focus {
+            background-color: rgba(255, 255, 255, .08);
+            border-color: var(--accent1);
+            color: white;
+            box-shadow: 0 0 0 3px var(--glow-color-rgba);
+            outline: none;
+        }
+        .form-control::placeholder { color: var(--muted); }
+        .btn-login {
+            background: var(--accent1);
+            color: white;
+            font-weight: 600;
+            border: 1px solid var(--accent1);
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            background: var(--accent2);
+            border-color: var(--accent2);
+            box-shadow: 0 0 15px 4px var(--glow-color-rgba);
+        }
+        .login-container a { color: var(--accent1); text-decoration: none; }
+        .login-container a:hover { color: var(--accent2); text-decoration: underline; }
+        footer { background-color: var(--header-bg); color: var(--muted); text-align: center; padding: 20px 0; margin-top: auto; border-top: 1px solid var(--border-color); }
+        .error-message { color: #ef4444; font-size: 0.9rem; text-align: center; margin-top: 15px; min-height: 20px; }
+    </style>
+</head>
+<body>
+<div class="main-content-wrapper d-flex flex-column">
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid"><a class="navbar-brand" href="#">EcoGauge</a></div>
+    </nav>
+    <div class="container d-flex justify-content-center align-items-center flex-grow-1 my-5">
+        <div class="login-container">
+            <h1>Welcome Back to <span class="gradient-text">EcoGauge</span></h1>
+            <form id="login-form" method="POST" action="/api/auth/login"> <div class="mb-3">
+                <label for="email" class="form-label">Email address</label>
+                <input type="email" class="form-control" id="email" name="username" placeholder="yashsingh123@gmail.com" required>
+            </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="*********" required>
+                </div>
+
+                <div class="text-end mb-3">
+                    <a href="/request-reset.html" class="small">Forgot Password?</a>
+                </div>
+
+                <div id="error-message" class="error-message"></div>
+                <button type="submit" class="btn btn-login mt-3">Login</button>
+            </form>
+            <div class="text-center mt-4">
+                <a href="/google-auth.html">Or Sign In with Google</a>
+            </div>
+            <p class="text-center mt-4">New to EcoGauge? <a href="/signup.html">Create an account</a></p>
+        </div>
+    </div>
+</div>
+<footer><p>&copy; 2025 EcoGauge. All Rights Reserved.</p></footer>
+
+
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reset Password - EcoGauge</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b1020; --card-bg: #111833; --header-bg: #161b22; --border-color: rgba(255, 255, 255, .1);
+            --muted: #97a3b6; --text: #e8ecf6; --accent1: #00aeff; --accent2: #29B6F6; --logo-color: #29B6F6;
+            --glow-color-rgba: rgba(41, 182, 246, 0.4);
+        }
+        body {
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            background: linear-gradient(120deg, #0b1020 0%, #0e1430 60%, #151a3a 100%); color: var(--text);
+            display: flex; flex-direction: column; min-height: 100vh;
+        }
+        .navbar { background-color: rgba(22, 27, 34, .7); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border-color); }
+        .navbar-brand { color: var(--logo-color); font-weight: bold; }
+        .reset-container {
+            background: radial-gradient(1200px 420px at -20% -20%, rgba(111, 86, 250, .08), transparent 60%),
+            radial-gradient(800px 300px at 120% 140%, rgba(79, 156, 255, .06), transparent 55%),
+            linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+            padding: 40px; border-radius: 18px; border: 1px solid var(--border-color); box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+            max-width: 500px; width: 100%;
+        }
+        .form-control { background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); color: var(--text); border-radius: 8px; padding: 12px 15px; }
+        .form-control:focus { background-color: rgba(255, 255, 255, .08); border-color: var(--accent1); color: white; box-shadow: 0 0 0 3px var(--glow-color-rgba); outline: none; }
+        .btn-submit { background: var(--accent1); color: white; font-weight: 600; border: 1px solid var(--accent1); border-radius: 8px; padding: 12px; width: 100%; }
+        .btn-submit:hover { background: var(--accent2); border-color: var(--accent2); }
+        .message-box { font-size: 0.9rem; text-align: center; margin-top: 15px; min-height: 20px; }
+        .error { color: #ef4444; }
+        .success { color: #34d399; }
+    </style>
+</head>
+<body>
+<div class="main-content-wrapper d-flex flex-column" style="flex: 1;">
+    <nav class="navbar navbar-expand-lg"><div class="container-fluid"><a class="navbar-brand" href="#">EcoGauge</a></div></nav>
+    <div class="container d-flex justify-content-center align-items-center flex-grow-1 my-5">
+        <div class="reset-container">
+            <h1 class="text-center h3 mb-4">Reset Your Password</h1>
+            <p class="text-center text-muted small mb-4">Enter your email address and we will send you a link to reset your password. This only works for local (non-Google) accounts.</p>
+            <form id="reset-request-form">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="yashsingh123@gmail.com" required>
+                </div>
+                <div id="message-box" class="message-box"></div>
+                <button type="submit" class="btn btn-submit mt-3">Send Reset Link</button>
+            </form>
+            <p class="text-center mt-4 small"><a href="/login.html">Back to Login</a></p>
+        </div>
+    </div>
+</div>
+<script>
+    const form = document.getElementById('reset-request-form');
+    const emailInput = document.getElementById('email');
+    const messageBox = document.getElementById('message-box');
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        messageBox.textContent = '';
+        messageBox.className = 'message-box';
+        submitButton.disabled = true;
+        submitButton.textContent = 'Sending...';
+
+        try {
+            const response = await fetch('/api/auth/request-reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: emailInput.value })
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                messageBox.textContent = result.message;
+                messageBox.classList.add('success');
+            } else {
+                throw new Error(result.error || 'An error occurred.');
+            }
+        } catch (error) {
+            messageBox.textContent = error.message;
+            messageBox.classList.add('error');
+            submitButton.disabled = false;
+        }
+        submitButton.textContent = 'Send Reset Link';
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - EcoGauge</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Boxicons CDN -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
+
+        /* Custom dark background gradient for feature cards */
+        .dark .feature-card-bg {
+            background: radial-gradient(1200px 420px at -20% -20%, rgba(111, 86, 250, .08), transparent 60%),
+            radial-gradient(800px 300px at 120% 140%, rgba(79, 156, 255, .06), transparent 55%),
+            linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+        }
+
+        /* Sidebar Transition for Mobile Menu (RHS) */
+        #mobile-menu {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(100%);
+        }
+        #mobile-menu.active {
+            transform: translateX(0);
+        }
+
+        #mobile-overlay {
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #mobile-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Animation for cards */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'custom-bg-dark': '#0b1020',
+                        'custom-bg-light': '#111833',
+                        'custom-header': '#161b22',
+                        'custom-border': 'rgba(255, 255, 255, .1)',
+                        'custom-muted': '#97a3b6',
+                        'custom-text': '#e8ecf6',
+                        'custom-accent1': '#00aeff',
+                        'custom-accent2': '#29B6F6',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 text-gray-900 dark:bg-custom-bg-dark dark:text-[#e8ecf6] transition-colors duration-300 selection:bg-blue-500 selection:text-white overflow-x-hidden">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-[100] bg-white/80 dark:bg-[rgba(22,27,34,0.7)] backdrop-blur-md border-b border-gray-200 dark:border-white/10">
+        <div class="container mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="index.html" class="text-2xl font-bold text-blue-600 dark:text-custom-accent2 hover:opacity-80 transition-opacity">
+                EcoGauge
+            </a>
+
+            <!-- Desktop Nav Items -->
+            <div class="hidden lg:flex items-center gap-8 text-sm">
+                <a href="index.html" class="font-medium hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">Home</a>
+                <a href="about.html" class="font-medium text-blue-600 dark:text-custom-accent2">About Us</a>
+                <a href="#" class="font-medium hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">Contact</a>
+                <a href="#" class="font-medium hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">Feedback</a>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Desktop Auth Buttons -->
+                <div class="hidden sm:flex items-center gap-2">
+                    <button class="px-5 py-2 text-sm font-medium rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50 dark:text-custom-accent2 dark:border-custom-accent1 dark:hover:bg-white/10 transition-all">
+                        Log In
+                    </button>
+                    <button class="px-5 py-2 text-sm font-medium rounded-full border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 dark:bg-custom-accent1 dark:border-custom-accent1 dark:hover:bg-custom-accent2 transition-all">
+                        Sign Up
+                    </button>
+                </div>
+
+                <!-- Theme Toggle -->
+                <button id="theme-toggle" class="w-[42px] h-[42px] flex items-center justify-center rounded-full text-gray-700 dark:text-[#97a3b6] bg-gray-100/70 dark:bg-white/5 border border-gray-300 dark:border-custom-border hover:bg-gray-200 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class='bx bxs-moon text-xl block dark:hidden'></i>
+                    <i class='bx bxs-sun text-xl hidden dark:block'></i>
+                </button>
+
+                <!-- Mobile Menu Toggle -->
+                <button id="mobile-menu-btn" class="lg:hidden w-[42px] h-[42px] flex items-center justify-center rounded-lg text-gray-700 dark:text-[#97a3b6] hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
+                    <i class='bx bx-menu text-3xl'></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-black/50 z-[140] backdrop-blur-sm"></div>
+
+    <!-- Mobile Sidebar Menu (RHS) -->
+    <div id="mobile-menu" class="fixed top-0 right-0 h-full w-[280px] bg-white dark:bg-custom-bg-light z-[150] shadow-2xl lg:hidden flex flex-col">
+        <div class="flex justify-end p-6">
+            <button id="mobile-close-btn" class="text-gray-500 hover:text-gray-900 dark:text-custom-muted dark:hover:text-white">
+                <i class='bx bx-x text-4xl'></i>
+            </button>
+        </div>
+        <div class="flex flex-col px-8 gap-6 font-semibold text-lg">
+            <a href="index.html" class="hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">Home</a>
+            <a href="about.html" class="text-blue-600 dark:text-custom-accent2">About Us</a>
+            <a href="#" class="hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">Contact</a>
+            <a href="#" class="hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">Feedback</a>
+            <div class="h-px w-full bg-gray-200 dark:bg-white/10 my-2"></div>
+            <button class="w-full py-3 rounded-xl border border-blue-600 text-blue-600 font-bold hover:bg-blue-50 dark:border-custom-accent1 dark:text-custom-accent1 dark:hover:bg-white/5 transition-all text-center">
+                Log In
+            </button>
+        </div>
+    </div>
+
+    <!-- Hero Section (Full Screen) -->
+    <header class="relative w-full h-screen flex items-center justify-center overflow-hidden">
+        <div id="hero-bg" class="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" 
+             style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7)), url('https://media.telanganatoday.com/wp-content/uploads/2022/11/Eco-bridge.jpg');">
+        </div>
+        <div class="container relative z-10 mx-auto px-6 text-center">
+            <h1 class="mb-6 text-5xl md:text-7xl font-extrabold text-white tracking-tight drop-shadow-2xl">
+                Clarity for our Air and Noise
+            </h1>
+            <p class="mx-auto mt-2 max-w-[650px] text-[clamp(18px,2.5vw,24px)] text-white leading-relaxed [text-shadow:0_1px_5px_rgba(0,0,0,0.5)]">
+                We are a passionate team dedicated to making environmental data accessible, understandable, and actionable for everyone.
+            </p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="relative z-10 bg-gray-100 dark:bg-custom-bg-dark pt-20 pb-24">
+        
+        <!-- Mission Section -->
+        <section class="container mx-auto px-6 md:px-10 mb-24">
+            <div class="text-center max-w-4xl mx-auto">
+                <span class="text-sm font-bold text-blue-600 dark:text-custom-accent1 uppercase tracking-widest mb-4 block">Our Mission</span>
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-8 text-gray-900 dark:text-white leading-tight">Demystifying Environmental Health</h2>
+                <p class="text-lg md:text-xl text-gray-600 dark:text-custom-muted leading-relaxed mb-10">
+                    Our mission is to empower communities, policymakers, and individuals with clear, accurate, and real-time environmental information. We believe that by translating complex data into intuitive indices like the Air Quality Index (AQI) and our innovative Noise Pollution Index, we can foster a deeper understanding of our environment and drive positive change.
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-8 text-lg font-semibold">
+                    <div class="flex items-center gap-3">
+                        <i class='bx bx-wind text-3xl text-blue-600 dark:text-custom-accent1'></i>
+                        <span>Air Quality (AQI)</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class='bx bxs-volume-full text-3xl text-blue-600 dark:text-custom-accent1'></i>
+                        <span>Noise Pollution</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Our Focus Section -->
+        <section class="container mx-auto px-6 md:px-10 mb-24">
+            <div class="text-center mb-16">
+                <span class="text-sm font-bold text-blue-600 dark:text-custom-accent1 uppercase tracking-widest mb-4 block">Our Focus</span>
+                <h2 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">Monitoring Air Quality and Urban Soundscapes</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+                <!-- AQI Card -->
+                <div class="feature-card-bg rounded-2xl border border-gray-200 bg-white p-10 shadow-lg transition-all duration-300 hover:-translate-y-2 dark:border-custom-border dark:bg-custom-bg-light dark:shadow-2xl">
+                    <div class="flex items-center gap-4 mb-6">
+                        <i class='bx bx-wind text-4xl text-blue-600 dark:text-custom-accent1'></i>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Air Quality Index (AQI)</h3>
+                    </div>
+                    <p class="text-lg text-gray-600 dark:text-custom-muted leading-relaxed">
+                        The AQI is your guide to local air quality. It measures major pollutants like particulate matter (PM2.5, PM10), ozone, and carbon monoxide to help you make informed decisions for your well-being.
+                    </p>
+                </div>
+                <!-- Noise Card -->
+                <div class="feature-card-bg rounded-2xl border border-gray-200 bg-white p-10 shadow-lg transition-all duration-300 hover:-translate-y-2 dark:border-custom-border dark:bg-custom-bg-light dark:shadow-2xl">
+                    <div class="flex items-center gap-4 mb-6">
+                        <i class='bx bxs-volume-full text-4xl text-blue-600 dark:text-custom-accent1'></i>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Noise Pollution Index</h3>
+                    </div>
+                    <p class="text-lg text-gray-600 dark:text-custom-muted leading-relaxed">
+                        Our innovative Noise Pollution Index tracks urban sound levels in decibels. This data is vital for urban planning and creating healthier, more peaceful living environments for everyone.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Team Section -->
+        <section class="container mx-auto px-6 md:px-10">
+            <div class="text-center mb-16">
+                <span class="text-sm font-bold text-blue-600 dark:text-custom-accent1 uppercase tracking-widest mb-4 block">Our Team</span>
+                <h2 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white">The Minds Behind the Metrics</h2>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+                <div class="team-card group feature-card-bg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-8 rounded-2xl text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-xl dark:hover:shadow-[0_0_20px_2px_rgba(41,182,246,0.2)]">
+                    <img data-initials="DS" src="https://placehold.co/200x200/0b1020/29B6F6?text=DS" class="team-avatar w-24 h-24 rounded-full mx-auto mb-6 border-4 border-blue-600 dark:border-custom-accent1 p-1">
+                    <h4 class="text-xl font-bold text-gray-900 dark:text-white">Deviprasad Shetty</h4>
+                    <p class="text-blue-600 dark:text-custom-accent2 font-medium">Full Stack Developer</p>
+                </div>
+                <div class="team-card group feature-card-bg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-8 rounded-2xl text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-xl dark:hover:shadow-[0_0_20px_2px_rgba(41,182,246,0.2)]">
+                    <img data-initials="RS" src="https://placehold.co/200x200/0b1020/29B6F6?text=RS" class="team-avatar w-24 h-24 rounded-full mx-auto mb-6 border-4 border-blue-600 dark:border-custom-accent1 p-1">
+                    <h4 class="text-xl font-bold text-gray-900 dark:text-white">Rupam Singh</h4>
+                    <p class="text-blue-600 dark:text-custom-accent2 font-medium">Full Stack Developer</p>
+                </div>
+                <div class="team-card group feature-card-bg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-8 rounded-2xl text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-xl dark:hover:shadow-[0_0_20px_2px_rgba(41,182,246,0.2)]">
+                    <img data-initials="AT" src="https://placehold.co/200x200/0b1020/29B6F6?text=AT" class="team-avatar w-24 h-24 rounded-full mx-auto mb-6 border-4 border-blue-600 dark:border-custom-accent1 p-1">
+                    <h4 class="text-xl font-bold text-gray-900 dark:text-white">Ameya Tamanekar</h4>
+                    <p class="text-blue-600 dark:text-custom-accent2 font-medium">UI/UX Specialist</p>
+                </div>
+                <div class="team-card group feature-card-bg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-8 rounded-2xl text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-xl dark:hover:shadow-[0_0_20px_2px_rgba(41,182,246,0.2)]">
+                    <img data-initials="RY" src="https://placehold.co/200x200/0b1020/29B6F6?text=RY" class="team-avatar w-24 h-24 rounded-full mx-auto mb-6 border-4 border-blue-600 dark:border-custom-accent1 p-1">
+                    <h4 class="text-xl font-bold text-gray-900 dark:text-white">Rajatkumar Yadav</h4>
+                    <p class="text-blue-600 dark:text-custom-accent2 font-medium">Frontend Specialist</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-custom-header border-t border-gray-200 dark:border-white/5 pt-16 pb-8">
+        <div class="container mx-auto px-6 text-center">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12 text-left">
+                <div class="col-span-1 md:col-span-1">
+                    <h3 class="text-2xl font-bold text-blue-600 dark:text-custom-accent2 mb-6">EcoGauge</h3>
+                    <p class="text-gray-600 dark:text-custom-muted text-sm leading-relaxed">
+                        Empowering citizens with real-time data to create cleaner, quieter, and healthier urban environments.
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-6">Platform</h4>
+                    <ul class="space-y-4 text-sm text-gray-600 dark:text-custom-muted">
+                        <li><a href="index.html" class="hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">Dashboard</a></li>
+                        <li><a href="#" class="hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">Global Maps</a></li>
+                        <li><a href="#" class="hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">City Rankings</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold mb-6">Company</h4>
+                    <ul class="space-y-4 text-sm text-gray-600 dark:text-custom-muted">
+                        <li><a href="about.html" class="hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">About Us</a></li>
+                        <li><a href="#" class="hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">Contact</a></li>
+                        <li><a href="#" class="hover:text-blue-600 dark:hover:text-custom-accent2 transition-colors">Privacy Policy</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold mb-6">Connect</h4>
+                    <div class="flex gap-4">
+                        <a href="#" class="text-gray-400 hover:text-blue-600 dark:text-custom-muted dark:hover:text-custom-accent1 text-2xl transition-all">
+                            <i class='bx bxl-twitter'></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-blue-600 dark:text-custom-muted dark:hover:text-custom-accent1 text-2xl transition-all">
+                            <i class='bx bxl-facebook-circle'></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-blue-600 dark:text-custom-muted dark:hover:text-custom-accent1 text-2xl transition-all">
+                            <i class='bx bxl-linkedin-square'></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="pt-8 border-t border-gray-200 dark:border-white/5 text-center text-sm text-gray-500 dark:text-custom-muted">
+                <p>&copy; 2025 EcoGauge. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const heroBg = document.getElementById('hero-bg');
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileCloseBtn = document.getElementById('mobile-close-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileOverlay = document.getElementById('mobile-overlay');
+            const teamAvatars = document.querySelectorAll('.team-avatar');
+
+            // --- Theme Toggle ---
+            const isDark = () => document.documentElement.classList.contains('dark');
+            
+            const updateAvatars = (theme) => {
+                teamAvatars.forEach(avatar => {
+                    const initials = avatar.dataset.initials;
+                    if (theme === 'light') {
+                        // Light grey background (F3F4F6) for profile placeholders
+                        avatar.src = `https://placehold.co/200x200/F3F4F6/2563eb?text=${initials}`;
+                    } else {
+                        // Original dark blue background (0b1020)
+                        avatar.src = `https://placehold.co/200x200/0b1020/29B6F6?text=${initials}`;
+                    }
+                });
+            };
+
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                updateAvatars('dark');
+            } else {
+                updateAvatars('light');
+            }
+
+            themeToggleBtn.addEventListener('click', () => {
+                if (isDark()) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                    updateAvatars('light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                    updateAvatars('dark');
+                }
+            });
+
+            // --- Mobile Menu Toggle ---
+            const openMenu = () => {
+                mobileMenu.classList.add('active');
+                mobileOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            };
+
+            const closeMenu = () => {
+                mobileMenu.classList.remove('active');
+                mobileOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            };
+
+            mobileMenuBtn.addEventListener('click', openMenu);
+            mobileCloseBtn.addEventListener('click', closeMenu);
+            mobileOverlay.addEventListener('click', closeMenu);
+
+            // --- Parallax ---
+            window.addEventListener('scroll', () => {
+                const offset = window.pageYOffset;
+                if (heroBg) {
+                    heroBg.style.backgroundPositionY = `${offset * 0.4}px`;
+                }
+            });
+
+            // --- Scroll Observer ---
+            const observerOptions = { threshold: 0.1 };
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-fade-in');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('section, .team-card, .feature-card-bg').forEach(el => {
+                el.style.opacity = '0';
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>

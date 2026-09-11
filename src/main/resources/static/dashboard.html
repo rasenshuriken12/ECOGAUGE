@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoGauge - Dashboard</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-start: #0b1020;
+            --bg-end: #0e1430;
+            --card: #111833;
+            --header-bg: rgba(22, 27, 34, .7);
+            --border-color: rgba(255, 255, 255, .1);
+            --muted: #97a3b6;
+            --text: #e8ecf6;
+
+            --accent1: #29B6F6;
+            --accent2: #81D4FA;
+            --logo-color: #29B6F6;
+            --glow-color-rgba: rgba(41, 182, 246, 0.4);
+
+            /* AQI Colors */
+            --good: #22c55e;
+            --moderate: #facc15;
+            --poor: #f97316;
+            --unhealthy: #ef4444;
+            --severe: #a855f7;
+            --hazardous: #800000;
+
+            /* Noise Colors (Matching ranking.html/noise_map.html) */
+            --noise-low: #34d399; /* Good/Low */
+            --noise-moderate: #facc15; /* Moderate */
+            --noise-high: #fb923c; /* Poor/Loud */
+            --noise-dangerous: #ef4444; /* Unhealthy/Very Loud */
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(120deg, var(--bg-start) 0%, var(--bg-end) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .site-nav {
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(8px);
+        }
+
+        .nav-container {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            width: 100%;
+            gap: 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--logo-color);
+            text-decoration: none;
+            transition: filter 0.2s ease;
+        }
+        .logo:hover { filter: brightness(1.2); }
+
+        .nav-controls {
+            grid-column: 2 / 3;
+            justify-self: center;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        #menu-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 28px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        #menu-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .toggle-btn-group {
+            display: inline-flex;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--accent1);
+            box-shadow: 0 0 8px 2px var(--glow-color-rgba);
+        }
+
+        .toggle-btn {
+            padding: 6px 16px; font-weight: 500; transition: all 0.2s ease-in-out;
+            background-color: transparent; color: var(--accent2);
+            border: none; cursor: pointer; display: inline-flex;
+            align-items: center; gap: 0.5rem;
+        }
+        .toggle-btn:not(:last-child) { border-right: 1px solid var(--accent1); }
+        .toggle-btn.active { background-color: var(--accent1); color: #FFFFFF; }
+        .toggle-btn:hover:not(.active) { background-color: rgba(41, 182, 246, 0.2); color: white; }
+
+        .search-form {
+            position: relative;
+            min-width: 250px;
+        }
+        .search-form input {
+            border-radius: 20px;
+            padding-left: 15px;
+            padding-right: 45px;
+            background-color: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: var(--text);
+            transition: all 0.2s ease-in-out;
+            height: 38px;
+            width: 100%;
+        }
+        .search-form input:focus {
+            border-color: var(--accent1);
+            background-color: var(--card);
+            outline: none;
+            box-shadow: none;
+        }
+        .search-form input::placeholder {
+            color: var(--muted);
+        }
+        .search-form button {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--accent1);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .search-form button:hover {
+            background-color: #0091ea;
+        }
+
+        /* Side Menu */
+        .side-menu-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .side-menu-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 280px;
+            height: 100%;
+            background-color: var(--bg-end);
+            border-right: 1px solid var(--border-color);
+            z-index: 101;
+            transition: left 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .side-menu.active {
+            left: 0;
+        }
+        .side-menu-header {
+            padding: 1rem 1rem 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            height: 65px; /* Match navbar height */
+        }
+        #close-menu-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .side-menu-nav {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            color: var(--muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .menu-item i {
+            font-size: 1.25rem;
+        }
+        .menu-item:hover {
+            background-color: rgba(255,255,255,0.05);
+            color: var(--text);
+        }
+        .menu-item.active {
+            background-color: var(--accent1);
+            color: white;
+            box-shadow: 0 0 15px var(--glow-color-rgba);
+        }
+
+        main { padding: 24px; flex-grow: 1; }
+
+        .card {
+            background: radial-gradient(1200px 420px at -20% -20%, rgba(111, 86, 250, .1), transparent 60%),
+            radial-gradient(800px 300px at 120% 140%, rgba(79, 156, 255, .08), transparent 55%),
+            linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .card:hover { transform: translateY(-3px); }
+
+        .btn {
+            cursor: pointer;
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .btn.primary {
+            border: 1px solid var(--accent1);
+            color: var(--accent1);
+        }
+        .btn.primary:hover {
+            background-color: rgba(41, 182, 246, 0.15);
+            color: white;
+            box-shadow: 0 0 15px 5px var(--glow-color-rgba);
+        }
+
+        .btn.danger {
+            border: 1px solid var(--unhealthy);
+            color: var(--unhealthy);
+        }
+        .btn.danger:hover {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: white;
+            box-shadow: 0 0 15px 5px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn.warning {
+            border: 1px solid var(--poor);
+            color: var(--poor);
+        }
+        .btn.warning:hover {
+            background-color: rgba(251, 146, 60, 0.15);
+            color: white;
+            box-shadow: 0 0 15px 5px rgba(251, 146, 60, 0.4);
+        }
+
+        .btn.secondary {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text);
+        }
+        .btn.secondary:hover {
+            background-color: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .btn i { font-size: 1.2em; }
+        .btn.hidden { display: none; }
+
+        .filter-btn-group { display: inline-flex; border-radius: 20px; overflow: hidden; border: 1px solid var(--border-color); }
+        .filter-btn { padding: 6px 16px; font-size: 14px; background: transparent; color: var(--muted); border: none; cursor: pointer; transition: all .2s ease; }
+        .filter-btn:not(:last-child) { border-right: 1px solid var(--border-color); }
+        .filter-btn.active { background: var(--accent1); color: white; }
+        .filter-btn:hover:not(.active) { background: rgba(255,255,255,.05); }
+
+        table {
+            width: 100%; border-collapse: collapse; background: rgba(255, 255, 255, .03);
+            border: 1px solid var(--border-color); border-radius: 14px; overflow: hidden;
+        }
+        thead th { font-size: 12px; text-align: left; color: #b7c3d6; background: rgba(255, 255, 255, .04); }
+        th, td { padding: 12px 10px; border-bottom: 1px solid rgba(255, 255, 255, .06); font-size: 13px; }
+        tbody tr:hover { background: rgba(255, 255, 255, .03); }
+
+        input, select {
+            background: rgba(255, 255, 255, .05); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 10px; color: var(--text);
+            outline: none; transition: border-color 0.2s; width: 100%;
+        }
+        input:focus, select:focus { border-color: var(--accent1); }
+
+        /* Added for textareas inside modals/forms */
+        textarea {
+            background: rgba(255, 255, 255, .05); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 10px; color: var(--text);
+            outline: none; transition: border-color 0.2s; width: 100%;
+            min-height: 80px;
+        }
+        textarea:focus { border-color: var(--accent1); }
+
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6);
+            display: flex; justify-content: center; align-items: center; z-index: 1000;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease; backdrop-filter: blur(5px);
+        }
+        .modal-backdrop.active { opacity: 1; pointer-events: auto; }
+        .modal-content { transform: scale(0.95); transition: transform 0.3s ease; }
+        .modal-backdrop.active .modal-content { transform: scale(1); }
+
+        .site-footer {
+            background-color: var(--header-bg); text-align: center;
+            padding: 20px; margin-top: auto; border-top: 1px solid var(--border-color);
+        }
+        .site-footer p { color: var(--muted); margin: 0; }
+        .site-footer a { color: var(--accent1); text-decoration: none; margin: 0 8px; transition: color 0.2s ease; }
+        .site-footer a:hover { color: var(--accent2); text-decoration: underline; }
+
+        .content-wrapper {
+            transition: padding-left 0.3s ease;
+        }
+
+        @media (max-width: 1023px) {
+            .nav-controls {
+                gap: 0.5rem;
+            }
+            .search-form {
+                display: none;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .side-menu {
+                left: 0;
+            }
+            .side-menu-backdrop {
+                display: none;
+                pointer-events: none;
+            }
+            .content-wrapper {
+                padding-left: 280px; /* Width of the side menu */
+            }
+            #menu-btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="side-menu-backdrop" class="side-menu-backdrop"></div>
+<div id="side-menu" class="side-menu">
+    <div class="side-menu-header">
+        <a class="logo" href="/dashboard.html">EcoGauge</a>
+        <button id="close-menu-btn"><i class='bx bx-x'></i></button>
+    </div>
+    <nav class="side-menu-nav">
+        <a href="/dashboard.html" class="menu-item active" data-view="dashboard-view">
+            <i class='bx bxs-dashboard'></i><span>Dashboard</span>
+        </a>
+        <a href="/dashboard.html" class="menu-item" data-view="stations-view">
+            <i class='bx bxs-edit-location'></i><span>Stations</span>
+        </a>
+        <a href="/maps/AQI_MAP.html" class="menu-item" data-view="maps-view">
+            <i class='bx bxs-map'></i><span>Maps</span>
+        </a>
+        <a href="/ranking.html" class="menu-item" data-view="rankings-view">
+            <i class='bx bxs-bar-chart-alt-2'></i><span>Rankings</span>
+        </a>
+        <a href="/feedback.html" class="menu-item" data-view="feedback-view">
+            <i class='bx bxs-message-dots'></i><span>Feedback</span>
+        </a>
+        <a href="/h2-console" target="_blank" class="menu-item">
+            <i class='bx bx-data'></i><span>DB Console</span>
+        </a>
+    </nav>
+</div>
+
+<div class="content-wrapper">
+    <nav class="site-nav">
+        <div class="nav-container">
+            <div style="display: flex; align-items: center; gap: 1rem; justify-self: start;">
+                <button id="menu-btn"><i class='bx bx-menu'></i></button>
+                <a class="logo" href="/dashboard.html">EcoGauge</a>
+            </div>
+
+            <div class="nav-controls">
+                <div class="toggle-btn-group" id="mode-toggle-group">
+                    <button class="toggle-btn aqi-btn active" data-mode="aqi"><i class='bx bx-wind'></i><span>AQI</span></button>
+                    <button class="toggle-btn noise-btn" data-mode="noise"><i class='bx bxs-volume-full'></i><span>Noise</span></button>
+                </div>
+                <form class="search-form" id="searchForm">
+                    <input type="search" placeholder="Search Stations..." id="citySearch">
+                    <button type="submit"><i class='bx bx-search-alt-2'></i></button>
+                </form>
+            </div>
+
+            <div style="justify-self: end;"></div>
+        </div>
+    </nav>
+
+    <main>
+        <div id="notification-container" class="fixed top-20 right-6 z-[1001] flex flex-col-reverse space-y-3 space-y-reverse"></div>
+
+        <div id="dashboard-container">
+            <div id="aqi-dashboard-view" data-mode="aqi">
+                <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-extrabold text-white">Mumbai, MH Dashboard</h1>
+                        <p class="text-slate-400 mt-1">Last updated: <span id="last-updated-aqi">--:--:--</span></p>
+                    </div>
+                    <button id="force-refresh-btn-aqi" class="btn secondary force-refresh-btn" data-mode="aqi" title="Force Refresh">
+                        <i class='bx bx-refresh'></i>
+                    </button>
+                </header>
+
+                <div class="card p-6 rounded-2xl mb-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                        <div class="flex items-center gap-2">
+                            <h3 id="analysis-title-aqi" class="text-xl font-bold text-white">Top 5 Highest AQI Stations (Live)</h3>
+                        </div>
+                        <div id="analysis-filters-aqi" class="flex flex-wrap gap-4 mt-4 md:mt-0">
+                            <div class="filter-btn-group" data-filter-group="sort">
+                                <button class="filter-btn active" data-value="high"><i class='bx bx-sort-up'></i> High</button>
+                                <button class="filter-btn" data-value="low"><i class='bx bx-sort-down'></i> Low</button>
+                            </div>
+                            <div class="filter-btn-group" data-filter-group="line">
+                                <button class="filter-btn active" data-value="all">All</button>
+                                <button class="filter-btn" data-value="Western">Western</button>
+                                <button class="filter-btn" data-value="Central">Central</button>
+                                <button class="filter-btn" data-value="Harbour">Harbour</button>
+                            </div>
+                            <div class="filter-btn-group" data-filter-group="period">
+                                <button class="filter-btn active" data-value="live">Live</button>
+                                <button class="filter-btn" data-value="weekly" disabled title="Not implemented with real data">Weekly</button>
+                                <button class="filter-btn" data-value="monthly" disabled title="Not implemented with real data">Monthly</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="analysis-table-container-aqi">
+                        <div class="text-center text-slate-400 py-4">Loading station data...</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="card p-6 flex flex-col justify-center items-center">
+                        <h3 class="text-lg font-semibold text-slate-400">City-Wide Average AQI</h3>
+                        <div class="relative w-full h-40">
+                            <canvas id="aqiGaugeChart"></canvas>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="overall-aqi-value" class="text-5xl font-extrabold">--</span>
+                                <span id="overall-aqi-status" class="text-lg font-semibold mt-1">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <div class="flex items-center mb-4">
+                            <i class='bx bxs-error text-2xl text-red-500 mr-3'></i>
+                            <h3 class="text-xl font-bold text-white">Active Alerts (AQI > 130)</h3>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <div id="alert-line-filter-aqi" class="filter-btn-group" data-filter-group="alert-line">
+                                <button class="filter-btn active" data-value="all">All</button>
+                                <button class="filter-btn" data-value="Western">Western</button>
+                                <button class="filter-btn" data-value="Central">Central</button>
+                                <button class="filter-btn" data-value="Harbour">Harbour</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto max-h-64">
+                            <table class="w-full text-sm text-left">
+                                <thead>
+                                <tr>
+                                    <th>Location</th>
+                                    <th>AQI</th>
+                                    <th>Status</th>
+                                </tr>
+                                </thead>
+                                <tbody id="alerts-dashboard-table-body-aqi">
+                                <tr><td colspan="3" class="text-center text-slate-400 py-4">Loading alerts...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="noise-dashboard-view" data-mode="noise" class="hidden">
+                <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-extrabold text-white">Mumbai, MH Dashboard</h1>
+                        <p class="text-slate-400 mt-1">Last updated: <span id="last-updated-noise">--:--:--</span></p>
+                    </div>
+                    <button id="force-refresh-btn-noise" class="btn secondary force-refresh-btn" data-mode="noise" title="Force Refresh">
+                        <i class='bx bx-refresh'></i>
+                    </button>
+                </header>
+
+                <div class="card p-6 rounded-2xl mb-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                        <div class="flex items-center gap-2">
+                            <h3 id="analysis-title-noise" class="text-xl font-bold text-white">Top 5 Highest Noise Stations (Live)</h3>
+                        </div>
+                        <div id="analysis-filters-noise" class="flex flex-wrap gap-4 mt-4 md:mt-0">
+                            <div class="filter-btn-group" data-filter-group="sort">
+                                <button class="filter-btn active" data-value="high"><i class='bx bx-sort-up'></i> High</button>
+                                <button class="filter-btn" data-value="low"><i class='bx bx-sort-down'></i> Low</button>
+                            </div>
+                            <div class="filter-btn-group" data-filter-group="line">
+                                <button class="filter-btn active" data-value="all">All</button>
+                                <button class="filter-btn" data-value="Western">Western</button>
+                                <button class="filter-btn" data-value="Central">Central</button>
+                                <button class="filter-btn" data-value="Harbour">Harbour</button>
+                            </div>
+                            <div class="filter-btn-group" data-filter-group="period">
+                                <button class="filter-btn active" data-value="live">Live</button>
+                                <button class="filter-btn" data-value="weekly" disabled title="Not implemented with real data">Weekly</button>
+                                <button class="filter-btn" data-value="monthly" disabled title="Not implemented with real data">Monthly</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="analysis-table-container-noise">
+                        <div class="text-center text-slate-400 py-4">Loading station data...</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="card p-6 flex flex-col justify-center items-center">
+                        <h3 class="text-lg font-semibold text-slate-400">City-Wide Average Noise Level (dB)</h3>
+                        <div class="relative w-full h-40">
+                            <canvas id="noiseGaugeChart"></canvas>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="overall-noise-value" class="text-5xl font-extrabold">--</span>
+                                <span id="overall-noise-status" class="text-lg font-semibold mt-1">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <div class="flex items-center mb-4">
+                            <i class='bx bxs-bell text-2xl text-yellow-500 mr-3'></i>
+                            <h3 class="text-xl font-bold text-white">High Noise Zones (Noise > 80 dB)</h3>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <div id="alert-line-filter-noise" class="filter-btn-group" data-filter-group="alert-line">
+                                <button class="filter-btn active" data-value="all">All</button>
+                                <button class="filter-btn" data-value="Western">Western</button>
+                                <button class="filter-btn" data-value="Central">Central</button>
+                                <button class="filter-btn" data-value="Harbour">Harbour</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto max-h-64">
+                            <table class="w-full text-sm text-left">
+                                <thead>
+                                <tr>
+                                    <th>Location</th>
+                                    <th>Noise (dB)</th>
+                                    <th>Level</th>
+                                </tr>
+                                </thead>
+                                <tbody id="alerts-dashboard-table-body-noise">
+                                <tr><td colspan="3" class="text-center text-slate-400 py-4">Loading zones...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="stations-view" class="hidden">
+            <h2 class="text-3xl font-extrabold text-white mb-6">Manage Monitoring Stations</h2>
+            <div class="card rounded-2xl p-4">
+                <div class="flex flex-wrap justify-between items-center gap-4 p-2">
+                    <div class="flex-grow flex flex-col sm:flex-row gap-4">
+                        <div id="station-line-filter" class="filter-btn-group" data-filter-group="station-line">
+                            <button class="filter-btn active" data-value="all">All</button>
+                            <button class="filter-btn" data-value="Western">Western</button>
+                            <button class="filter-btn" data-value="Central">Central</button>
+                            <button class="filter-btn" data-value="Harbour">Harbour</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="add-station-table-btn" class="btn primary"><i class='bx bx-plus'></i> Add Station</button>
+                    </div>
+                </div>
+                <div class="overflow-y-auto overflow-x-auto mt-4">
+                    <table class="w-full text-sm text-left">
+                        <thead class="sticky top-0 bg-opacity-50 backdrop-blur-sm" style="background-color: var(--card);">
+                        <tr>
+                            <th>Location</th>
+                            <th>Line</th>
+                            <th class="text-center">AQI</th>
+                            <th>Status</th>
+                            <th class="text-center">Lat/Lon</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="location-table-body">
+                        <tr><td colspan="6" class="text-center text-slate-400 py-4">Loading station list...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="maps-view" class="hidden">
+            <div class="card p-8 rounded-2xl text-center">
+                <i class='bx bxs-map text-6xl text-accent1 mb-4'></i>
+                <h2 class="text-2xl font-bold text-white mb-4">Maps View</h2>
+                <p class="text-slate-400">
+                    Select an environmental metric to view the map:
+                </p>
+                <div class="flex justify-center gap-4 mt-4">
+                    <a href="/maps/AQI_MAP.html" class="btn primary">View AQI Map</a>
+                    <a href="/maps/NOISE_MAP.html" class="btn secondary">View Noise Map</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="rankings-view" class="hidden">
+            <div class="card p-8 rounded-2xl text-center">
+                <i class='bx bxs-bar-chart-alt-2 text-6xl text-accent1 mb-4'></i>
+                <h2 class="text-2xl font-bold text-white mb-4">Rankings View</h2>
+                <p class="text-slate-400">Please visit the <a href="/ranking.html" class="text-accent2 hover:underline">dedicated Ranking page</a> for detailed information.</p>
+            </div>
+        </div>
+
+        <div id="feedback-view" class="hidden">
+            <div class="card p-8 rounded-2xl">
+                <h2 class="text-2xl font-bold text-white mb-4">User Feedback</h2>
+                <p class="text-slate-400 mb-6">Latest suggestions and comments from our users.</p>
+                <div id="feedback-list" class="space-y-4">
+                    <div class="text-center text-slate-400 py-4">Fetching feedback...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="site-footer">
+        <p>&copy; 2025 EcoGauge. All Rights Reserved.</p>
+        <p>
+            <a href="/ranking.html">Ranking</a> |
+            <a href="/feedback.html">Submit Feedback</a> |
+            <a href="/h2-console" target="_blank">DB Console</a>
+        </p>
+    </footer>
+</div>
+
+<div id="station-modal" class="modal-backdrop">
+    <div class="modal-content w-full max-w-md">
+        <form id="station-form" class="card p-8 rounded-2xl">
+            <h2 id="modal-title" class="text-2xl font-bold mb-6 text-white"></h2>
+            <input type="hidden" id="station-id" name="id">
+            <div class="space-y-4">
+                <input type="text" id="station-name" name="stationName" placeholder="Station Name (e.g., Kalva)" required>
+                <select id="station-line" name="line" required>
+                    <option value="Western">Western</option>
+                    <option value="Central">Central</option>
+                    <option value="Harbour">Harbour</option>
+                </select>
+
+                <h4 class="text-sm font-semibold text-slate-300 pt-2">Current Readings</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" step="1" id="station-aqi-value" name="aqiValue" placeholder="AQI Value" required>
+                    <input type="number" step="any" id="station-noise-level" name="noiseLevel" placeholder="Noise Level (dB)" required>
+                </div>
+
+                <h4 class="text-sm font-semibold text-slate-300 pt-2">Pollutant Concentrations (μg/m³)</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" step="any" id="station-pm25" name="pm25" placeholder="PM2.5" required>
+                    <input type="number" step="any" id="station-pm10" name="pm10" placeholder="PM10" required>
+                    <input type="number" step="any" id="station-no2" name="no2" placeholder="NO₂" required>
+                    <input type="number" step="any" id="station-o3" name="o3" placeholder="O₃" required>
+                </div>
+
+                <h4 class="text-sm font-semibold text-slate-300 pt-2">Location Coordinates</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" step="any" id="station-lat" name="lat" placeholder="Latitude" required>
+                    <input type="number" step="any" id="station-lon" name="lon" placeholder="Longitude" required>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-4 mt-8">
+                <button type="button" class="btn secondary cancel-btn">Cancel</button>
+                <button type="submit" class="btn primary">Add Station</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="delete-modal" class="modal-backdrop">
+    <div class="modal-content w-full max-w-sm">
+        <div class="card p-8 rounded-2xl text-center">
+            <i class='bx bxs-error-circle text-5xl text-red-500 mx-auto'></i>
+            <h2 class="text-xl font-bold my-4 text-white">Confirm Deletion</h2>
+            <p id="delete-modal-text" class="text-slate-400 mb-6">
+                Are you sure you want to delete this station? This action cannot be undone.
+            </p>
+            <div class="flex justify-center space-x-4">
+                <button type="button" class="btn secondary cancel-btn">Cancel</button>
+                <button type="button" id="confirm-delete-btn" class="btn danger">
+                    <i class='bx bx-trash'></i> Confirm Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- App State & Configuration ---
+        const API_STATIONS_URL = '/api/stations';
+        const API_FEEDBACK_URL = '/api/feedback';
+        const APP = {
+            locations: [],
+            feedback: [],
+            charts: {},
+            updateInterval: 60000,
+            analysisFilters: { sort: 'high', line: 'all', period: 'live' },
+            stationTableFilters: { search: '', line: 'all' },
+            alertFilters: { line: 'all' },
+            lastUpdatedTimestamp: new Date().toISOString(),
+            selectedStationId: null,
+            isUpdateMode: false,
+            currentMode: 'aqi',
+            currentView: 'dashboard-view', // Track current main view
+        };
+
+        // --- Utility Functions ---
+
+        const getAqiInfo = (aqi) => {
+            if (aqi <= 50) return { status: "Good", color: "var(--good)", className: "good" };
+            if (aqi <= 100) return { status: "Moderate", color: "var(--moderate)", className: "moderate" };
+            if (aqi <= 150) return { status: "Poor", color: "var(--poor)", className: "poor" };
+            if (aqi <= 200) return { status: "Unhealthy", color: "var(--unhealthy)", className: "unhealthy" };
+            if (aqi <= 300) return { status: "Severe", color: "var(--severe)", className: "severe" };
+            return { status: "Hazardous", color: "var(--hazardous)", className: "hazardous" };
+        };
+
+        const getNoiseInfo = (noise) => {
+            if (noise <= 70) return { status: "Moderate", color: "var(--noise-moderate)", className: "noise-moderate" };
+            if (noise <= 85) return { status: "High", color: "var(--noise-high)", className: "noise-high" };
+            return { status: "Dangerous", color: "var(--noise-dangerous)", className: "noise-dangerous" };
+        };
+
+        function formatTime(isoString) {
+            if (!isoString) return '--:--:--';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            }).toUpperCase();
+        }
+
+        function showNotification(message, color, icon='bx-check') {
+            const container = document.getElementById('notification-container');
+            if (!container) return;
+            const notification = document.createElement('div');
+            notification.className = `p-4 rounded-lg shadow-lg flex items-center gap-4 transition-transform transform translate-x-full duration-300 ease-out bg-slate-800 border border-slate-700`;
+            notification.innerHTML = `<div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-lg" style="background-color: ${color};"><i class='bx ${icon}'></i></div><div><p class="font-semibold text-white">${message}</p></div><button class="text-slate-500 hover:text-slate-300 ml-auto" onclick="this.closest('div').remove();"><i class="bx bx-x-circle text-lg"></i></button>`;
+            container.prepend(notification);
+            setTimeout(() => notification.classList.remove('translate-x-full'), 10);
+            setTimeout(() => notification.classList.add('translate-x-full'), 5000);
+            setTimeout(() => notification.remove(), 5300);
+        }
+
+        // --- API Calls (CRUD) ---
+
+        async function fetchStationsFromAPI() {
+            try {
+                const response = await fetch(API_STATIONS_URL);
+                if (!response.ok) throw new Error('Failed to fetch station data');
+                const data = await response.json();
+
+                const newestDataMap = new Map();
+                data.forEach(item => {
+                    const existing = newestDataMap.get(item.stationName);
+                    if (!existing || new Date(item.timestamp) > new Date(existing.timestamp)) {
+                        newestDataMap.set(item.stationName, item);
+                    }
+                });
+
+                APP.locations = Array.from(newestDataMap.values()).map(loc => {
+                    const aqiInfo = getAqiInfo(loc.aqiValue);
+                    const noiseInfo = getNoiseInfo(loc.noiseLevel);
+                    return {
+                        ...loc,
+                        aqi: loc.aqiValue,
+                        noise: loc.noiseLevel,
+                        aqiStatus: aqiInfo.status,
+                        noiseStatus: noiseInfo.status,
+                        aqiColor: aqiInfo.color,
+                        noiseColor: noiseInfo.color,
+                        dominant: loc.dominantPollutant
+                    };
+                });
+
+                const latestReading = APP.locations.reduce((latest, current) => {
+                    return new Date(current.timestamp) > new Date(latest.timestamp) ? current : latest;
+                }, { timestamp: new Date(0).toISOString() });
+                APP.lastUpdatedTimestamp = latestReading.timestamp;
+
+            } catch (error) {
+                console.error("Error fetching station data:", error);
+                showNotification("Failed to fetch station data.", 'var(--unhealthy)', 'bx-error-alt');
+            }
+            updateUI();
+        }
+
+        async function fetchFeedbackFromAPI() {
+            try {
+                const response = await fetch(API_FEEDBACK_URL);
+                if (!response.ok) throw new Error('Failed to fetch feedback data');
+                APP.feedback = await response.json();
+            } catch (error) {
+                console.error("Error fetching feedback data:", error);
+                APP.feedback = [];
+            }
+            if (APP.currentView === 'feedback-view') {
+                renderFeedback();
+            }
+        }
+
+        async function submitNewStation(stationData) {
+            try {
+                const response = await fetch(API_STATIONS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(stationData)
+                });
+
+                if (!response.ok) throw new Error('Failed to add station: ' + response.statusText);
+
+                const newStation = await response.json();
+                await fetchStationsFromAPI();
+
+                showNotification(`Station '${newStation.stationName}' added successfully!`, 'var(--good)');
+
+            } catch (error) {
+                console.error("Error submitting new station:", error);
+                showNotification(`Failed to add station. Check console for details.`, 'var(--unhealthy)', 'bx-error-alt');
+            } finally {
+                stationModal.classList.remove('active');
+            }
+        }
+
+        async function updateStationAPI(id, stationData) {
+            try {
+                const response = await fetch(`${API_STATIONS_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(stationData)
+                });
+
+                if (!response.ok) throw new Error('Failed to update station: ' + response.statusText);
+
+                const updatedStation = await response.json();
+                await fetchStationsFromAPI();
+
+                showNotification(`Station '${updatedStation.stationName}' updated successfully!`, 'var(--accent1)');
+
+            } catch (error) {
+                console.error("Error updating station:", error);
+                showNotification(`Failed to update station. Check console for details.`, 'var(--unhealthy)', 'bx-error-alt');
+            } finally {
+                stationModal.classList.remove('active');
+            }
+        }
+
+        async function deleteStationAPI(id) {
+            try {
+                const stationName = APP.locations.find(s => s.id === id)?.stationName || 'Station';
+                const response = await fetch(`${API_STATIONS_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Station not found.');
+                    }
+                    throw new Error('Failed to delete station: ' + response.statusText);
+                }
+
+                await fetchStationsFromAPI();
+                showNotification(`Station '${stationName}' deleted successfully.`, 'var(--danger)', 'bx-trash');
+
+            } catch (error) {
+                console.error("Error deleting station:", error);
+                showNotification(`Failed to delete station. Check console for details.`, 'var(--unhealthy)', 'bx-error-alt');
+            } finally {
+                deleteModal.classList.remove('active');
+            }
+        }
+
+
+        // --- Rendering Functions (Mode-Aware) ---
+
+        function renderTable() {
+            const tableBody = document.getElementById('location-table-body');
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+
+            const { search, line } = APP.stationTableFilters;
+            const filteredLocations = APP.locations.filter(loc =>
+                loc.stationName.toLowerCase().includes(search.toLowerCase()) &&
+                (line === 'all' || loc.line === line)
+            ).sort((a, b) => a.stationName.localeCompare(b.stationName));
+
+            if (filteredLocations.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-slate-400 py-4">No stations found matching your filter.</td></tr>`;
+                return;
+            }
+
+            filteredLocations.forEach(loc => {
+                const info = getAqiInfo(loc.aqiValue);
+                const row = document.createElement('tr');
+                row.className = 'border-b';
+                row.style.borderColor = 'var(--border-color)';
+
+                row.dataset.id = loc.id;
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-semibold text-white">${loc.stationName}</td>
+                    <td class="px-6 py-4 text-slate-400">${loc.line}</td>
+                    <td class="px-6 py-4 text-center font-bold" style="color: ${info.color}">${loc.aqiValue}</td>
+                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-xs font-semibold" style="background-color:${info.color}20; color:${info.color};">${loc.aqiCategory}</span></td>
+                    <td class="px-6 py-4 text-center text-xs text-slate-400">${loc.lat.toFixed(4)} / ${loc.lon.toFixed(4)}</td>
+                    <td class="px-6 py-4 text-center">
+                        <button class="edit-btn p-1 text-blue-400 hover:text-blue-300" data-id="${loc.id}"><i class='bx bx-pencil text-lg'></i></button>
+                        <button class="delete-btn p-1 text-red-400 hover:text-red-300 ml-2" data-id="${loc.id}"><i class='bx bx-trash text-lg'></i></button>
+                    </td>`;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function renderDashboardAlertsTable() {
+            const isAqi = APP.currentMode === 'aqi';
+            const tableBodyId = isAqi ? 'alerts-dashboard-table-body-aqi' : 'alerts-dashboard-table-body-noise';
+            const tableBody = document.getElementById(tableBodyId);
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+
+            const alertThreshold = isAqi ? 130 : 80;
+            const valueKey = isAqi ? 'aqiValue' : 'noiseLevel';
+            const categoryKey = isAqi ? 'aqiCategory' : 'noiseCategory';
+            const colorKey = isAqi ? 'aqiColor' : 'noiseColor';
+            const unit = isAqi ? '' : ' dB';
+
+            const { line } = APP.alertFilters;
+
+            const filteredAlerts = APP.locations.filter(loc =>
+                (line === 'all' || loc.line === line) && loc[valueKey] > alertThreshold
+            ).sort((a, b) => b[valueKey] - a[valueKey]);
+
+            if (filteredAlerts.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-slate-400 py-4">No stations in this region have a ${isAqi ? 'Serious AQI' : 'High Noise Level'} > ${alertThreshold}.</td></tr>`;
+                return;
+            }
+            filteredAlerts.forEach(loc => {
+                const value = loc[valueKey];
+                const category = loc[categoryKey];
+                const color = loc[colorKey];
+
+                tableBody.innerHTML += `<tr class="border-b" style="border-color: var(--border-color);">
+                                            <td class="px-6 py-4 font-semibold text-white">${loc.stationName} <span class="text-xs text-slate-400">${loc.line}</span></td>
+                                            <td class="px-6 py-4 font-bold" style="color:${color};">${value.toFixed(isAqi ? 0 : 1)}${unit}</td>
+                                            <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-xs font-semibold" style="background-color:${color}20; color:${color};">${category}</span></td>
+                                        </tr>`;
+            });
+        }
+
+        function renderTop5Analysis() {
+            const isAqi = APP.currentMode === 'aqi';
+            const containerId = isAqi ? 'analysis-table-container-aqi' : 'analysis-table-container-noise';
+            const titleId = isAqi ? 'analysis-title-aqi' : 'analysis-title-noise';
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const { sort, line } = APP.analysisFilters;
+
+            const valueKey = isAqi ? 'aqiValue' : 'noiseLevel';
+            const unit = isAqi ? '' : ' dB';
+            const tableHeader = isAqi ? 'Current AQI' : 'Current Noise (dB)';
+
+            let filteredLocations = line === 'all' ? [...APP.locations] : APP.locations.filter(loc => loc.line === line);
+
+            const sortedLocations = filteredLocations.sort((a, b) => {
+                const valA = a[valueKey];
+                const valB = b[valueKey];
+                return sort === 'high' ? valB - valA : valA - valB;
+            });
+
+            const top5 = sortedLocations.slice(0, 5);
+
+            let rows = top5.map(d => {
+                const value = d[valueKey];
+                const color = isAqi ? d.aqiColor : d.noiseColor;
+
+                return `<tr>
+                            <td class="py-2 px-4">${d.stationName}</td>
+                            <td class="py-2 px-4 text-center">${d.line}</td>
+                            <td class="py-2 px-4 text-right font-semibold" style="color: ${color};">${value.toFixed(isAqi ? 0 : 1)}${unit}</td>
+                        </tr>`;
+            }).join('');
+
+            if (rows.length === 0) {
+                rows = `<tr><td colspan="3" class="text-center text-slate-400 py-4">No station data available for this filter.</td></tr>`;
+            }
+
+            const sortText = sort === 'high' ? 'Top 5 Highest' : 'Top 5 Lowest';
+            const metricText = isAqi ? 'AQI' : 'Noise';
+            document.getElementById(titleId).textContent = `${sortText} ${metricText} Stations (Live)`;
+
+            container.innerHTML = `<table class="w-full text-sm"><thead><tr class="border-b" style="border-color: var(--border-color);"><th class="text-left font-semibold py-2 px-4">Station</th><th class="text-center font-semibold py-2 px-4">Line</th><th class="text-right font-semibold py-2 px-4">${tableHeader}</th></tr></thead><tbody>${rows}</tbody></table>`;
+        }
+
+        function renderGaugeChart() {
+            const isAqi = APP.currentMode === 'aqi';
+            const ctxId = isAqi ? 'aqiGaugeChart' : 'noiseGaugeChart';
+            const ctx = document.getElementById(ctxId);
+
+            const valueKey = isAqi ? 'aqiValue' : 'noiseLevel';
+            const maxGaugeValue = isAqi ? 301 : 100;
+
+            if (!ctx) return;
+            if (APP.charts[ctxId]) APP.charts[ctxId].destroy();
+
+            if (APP.locations.length === 0) return;
+
+            const avgValue = APP.locations.length > 0 ? APP.locations.reduce((sum, loc) => sum + loc[valueKey], 0) / APP.locations.length : 0;
+
+            const info = isAqi ? getAqiInfo(avgValue) : getNoiseInfo(avgValue);
+
+            const valueDisplay = isAqi ? avgValue.toFixed(0) : avgValue.toFixed(1);
+
+            document.getElementById(`overall-${isAqi ? 'aqi' : 'noise'}-value`).textContent = valueDisplay;
+            document.getElementById(`overall-${isAqi ? 'aqi' : 'noise'}-status`).textContent = info.status;
+            document.getElementById(`overall-${isAqi ? 'aqi' : 'noise'}-status`).style.color = info.color;
+
+            APP.charts[ctxId] = new Chart(ctx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [Math.min(avgValue, maxGaugeValue), maxGaugeValue - Math.min(avgValue, maxGaugeValue)],
+                        backgroundColor: [info.color, '#334155'],
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    rotation: -90,
+                    circumference: 180,
+                    cutout: '80%',
+                    plugins: { tooltip: { enabled: false } },
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function renderFeedback() {
+            const feedbackList = document.getElementById('feedback-list');
+            if (!feedbackList) return;
+            feedbackList.innerHTML = '';
+
+            if (APP.feedback.length === 0) {
+                feedbackList.innerHTML = `<div class="text-center text-sm text-slate-500 py-4">No feedback submitted yet.</div>`;
+                return;
+            }
+
+            APP.feedback.forEach(feedback => {
+                const date = new Date(feedback.timestamp).toLocaleDateString('en-IN');
+                const feedbackItem = document.createElement('div');
+                feedbackItem.className = 'p-4 rounded-lg';
+                feedbackItem.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                feedbackItem.innerHTML = `<div class="flex justify-between items-center mb-2">
+                                            <p class="font-semibold text-white">${feedback.name || 'Anonymous'} <span class="text-xs text-slate-400">(${feedback.email})</span></p>
+                                            <p class="text-sm text-slate-400">${feedback.region || 'N/A'} - ${feedback.location || 'N/A'} <span class="ml-2">${date}</span></p>
+                                        </div>
+                                        <p class="text-slate-200">${feedback.message}</p>`;
+                feedbackList.appendChild(feedbackItem);
+            });
+        }
+
+        function updateUI() {
+            const isAqi = APP.currentMode === 'aqi';
+
+            // Update timestamp only for the current mode view
+            const lastUpdatedEl = document.getElementById(`last-updated-${isAqi ? 'aqi' : 'noise'}`);
+            if (lastUpdatedEl) lastUpdatedEl.textContent = formatTime(APP.lastUpdatedTimestamp);
+
+            // Render only mode-dependent elements
+            if (APP.currentView === 'dashboard-view') {
+                renderDashboardAlertsTable();
+                renderGaugeChart();
+                renderTop5Analysis();
+            } else if (APP.currentView === 'stations-view') {
+                renderTable();
+            } else if (APP.currentView === 'feedback-view') {
+                renderFeedback();
+            }
+        }
+
+        // --- View & Mode Handlers ---
+
+        function switchView(viewId) {
+            // 1. Hide all main views
+            document.querySelectorAll('#dashboard-container, #stations-view, #maps-view, #rankings-view, #feedback-view').forEach(view => view.classList.add('hidden'));
+
+            APP.currentView = viewId;
+
+            // 2. Determine which view to show
+            if (viewId === 'dashboard-view') {
+                // Show the main dashboard container
+                document.getElementById('dashboard-container').classList.remove('hidden');
+                // Show the correct sub-view based on currentMode
+                document.getElementById('aqi-dashboard-view').classList.toggle('hidden', APP.currentMode !== 'aqi');
+                document.getElementById('noise-dashboard-view').classList.toggle('hidden', APP.currentMode !== 'noise');
+            } else {
+                document.getElementById(viewId).classList.remove('hidden');
+            }
+
+            // 3. Update active state in sidebar
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            const activeMenuItem = document.querySelector(`.menu-item[data-view="${viewId}"]`);
+            if (activeMenuItem) activeMenuItem.classList.add('active');
+
+            // 4. Fetch data if necessary
+            if (viewId === 'feedback-view') {
+                fetchFeedbackFromAPI();
+            } else if (viewId === 'stations-view' || viewId === 'dashboard-view') {
+                fetchStationsFromAPI();
+            }
+        }
+
+        function switchMode(newMode) {
+            if (APP.currentMode === newMode) return;
+
+            APP.currentMode = newMode;
+
+            // Update top navbar toggles
+            document.querySelectorAll('#mode-toggle-group .toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === newMode);
+            });
+
+            // Reset analysis filters to default for the new mode
+            APP.analysisFilters = { sort: 'high', line: 'all', period: 'live' };
+
+            // Show correct dashboard panel
+            document.getElementById('aqi-dashboard-view').classList.toggle('hidden', newMode !== 'aqi');
+            document.getElementById('noise-dashboard-view').classList.toggle('hidden', newMode !== 'noise');
+
+            // Reset filter active states in the newly visible panel
+            const activeViewId = `${newMode}-dashboard-view`;
+            document.querySelectorAll(`#${activeViewId} .filter-btn-group[data-filter-group="sort"] .filter-btn`).forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === 'high');
+            });
+            document.querySelectorAll(`#${activeViewId} .filter-btn-group[data-filter-group="line"] .filter-btn`).forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === 'all');
+            });
+            document.querySelectorAll(`#${activeViewId} .filter-btn-group[data-filter-group="period"] .filter-btn`).forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === 'live');
+            });
+            document.querySelectorAll(`#${activeViewId} .filter-btn-group[data-filter-group="alert-line"] .filter-btn`).forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === 'all');
+            });
+            APP.alertFilters.line = 'all'; // Reset alert filter state
+
+            updateUI();
+        }
+
+
+        const stationModal = document.getElementById('station-modal');
+        const deleteModal = document.getElementById('delete-modal');
+        const stationForm = document.getElementById('station-form');
+
+        function openStationModal(station = null) {
+            stationForm.reset();
+            const modalTitle = document.getElementById('modal-title');
+            const saveBtn = stationForm.querySelector('.btn.primary');
+
+            APP.isUpdateMode = !!station;
+
+            const pollutantFields = ['pm25', 'pm10', 'no2', 'o3'];
+
+            if (APP.isUpdateMode) {
+                modalTitle.textContent = 'Update Station';
+                saveBtn.textContent = 'Save Changes';
+                document.getElementById('station-id').value = station.id;
+                document.getElementById('station-name').value = station.stationName;
+                document.getElementById('station-line').value = station.line;
+                document.getElementById('station-lat').value = station.lat;
+                document.getElementById('station-lon').value = station.lon;
+                document.getElementById('station-aqi-value').value = station.aqiValue;
+                document.getElementById('station-noise-level').value = station.noiseLevel;
+
+                pollutantFields.forEach(field => {
+                    const el = document.getElementById(`station-${field}`);
+                    if (el && station[field] !== null && station[field] !== undefined) {
+                        el.value = station[field];
+                    }
+                });
+
+            } else {
+                modalTitle.textContent = 'Add New Station';
+                saveBtn.textContent = 'Add Station';
+                document.getElementById('station-id').value = '';
+                document.getElementById('station-pm25').value = '30';
+                document.getElementById('station-pm10').value = '50';
+                document.getElementById('station-no2').value = '35';
+                document.getElementById('station-o3').value = '40';
+            }
+            stationModal.classList.add('active');
+        }
+
+        function openDeleteModal(id) {
+            APP.selectedStationId = id;
+            const station = APP.locations.find(s => s.id === id);
+            const text = `Are you sure you want to delete the station: ${station.stationName} (${station.line})? This action cannot be undone.`;
+            document.getElementById('delete-modal-text').textContent = text;
+            deleteModal.classList.add('active');
+        }
+
+        // --- Event Listeners Setup ---
+
+        function setupEventListeners() {
+            const sideMenu = document.getElementById('side-menu');
+            const sideMenuBackdrop = document.getElementById('side-menu-backdrop');
+            const openMenuBtn = document.getElementById('menu-btn');
+            const closeMenuBtn = document.getElementById('close-menu-btn');
+            const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+
+            // Menu Toggle
+            function toggleMenu(active) {
+                sideMenu.classList.toggle('active', active);
+                sideMenuBackdrop.classList.toggle('active', active);
+            }
+            openMenuBtn.addEventListener('click', () => toggleMenu(true));
+            closeMenuBtn.addEventListener('click', () => toggleMenu(false));
+            sideMenuBackdrop.addEventListener('click', () => toggleMenu(false));
+
+            // View Switching
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const viewId = e.currentTarget.dataset.view;
+
+                    // Logic to handle static links vs. in-page switches
+                    if (e.currentTarget.getAttribute('href') && e.currentTarget.getAttribute('href').startsWith('/')) {
+                        if (viewId === 'dashboard-view' || viewId === 'stations-view' || viewId === 'feedback-view') {
+                            e.preventDefault();
+                            switchView(viewId);
+                        } else {
+                            // Let the browser follow the static link (e.g., /maps/aqi.html, /ranking.html)
+                            return;
+                        }
+                    } else {
+                        e.preventDefault();
+                        switchView(viewId);
+                    }
+                    toggleMenu(false);
+                });
+            });
+
+            // Mode Toggling
+            document.querySelectorAll('#mode-toggle-group .toggle-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    switchMode(btn.dataset.mode);
+                });
+            });
+
+            // Data Refresh
+            document.querySelectorAll('.force-refresh-btn')?.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    fetchStationsFromAPI();
+                });
+            });
+
+            // Station Modal Handlers
+            document.getElementById('add-station-table-btn')?.addEventListener('click', () => openStationModal(null));
+            document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', () => {
+                stationModal.classList.remove('active');
+                deleteModal.classList.remove('active');
+            }));
+
+            // Handle Add/Update Form Submission
+            stationForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(stationForm);
+                const stationData = {
+                    id: document.getElementById('station-id').value,
+                    stationName: formData.get('stationName'),
+                    line: formData.get('line'),
+                    aqiValue: parseInt(formData.get('aqiValue')),
+                    noiseLevel: parseFloat(formData.get('noiseLevel')),
+                    lat: parseFloat(formData.get('lat')),
+                    lon: parseFloat(formData.get('lon')),
+                    pm25: parseFloat(formData.get('pm25')),
+                    pm10: parseFloat(formData.get('pm10')),
+                    no2: parseFloat(formData.get('no2')),
+                    o3: parseFloat(formData.get('o3'))
+                };
+
+                if (APP.isUpdateMode && stationData.id) {
+                    updateStationAPI(stationData.id, stationData);
+                } else {
+                    submitNewStation(stationData);
+                }
+            });
+
+            // Handle Delete Confirmation
+            confirmDeleteBtn.addEventListener('click', () => {
+                if (APP.selectedStationId) {
+                    deleteStationAPI(APP.selectedStationId);
+                    APP.selectedStationId = null;
+                }
+            });
+
+            // Handle Edit and Delete Button Clicks on the Table
+            document.getElementById('location-table-body')?.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.edit-btn');
+                const deleteBtn = e.target.closest('.delete-btn');
+
+                if (editBtn) {
+                    const id = parseInt(editBtn.dataset.id);
+                    const station = APP.locations.find(s => s.id === id);
+                    if (station) openStationModal(station);
+                    return;
+                }
+
+                if (deleteBtn) {
+                    const id = parseInt(deleteBtn.dataset.id);
+                    openDeleteModal(id);
+                    return;
+                }
+            });
+
+            // Dashboard Analysis Filters
+            document.querySelectorAll('#analysis-filters-aqi, #analysis-filters-noise').forEach(filterGroup => {
+                filterGroup.addEventListener('click', e => {
+                    const btn = e.target.closest('.filter-btn');
+                    if (!btn || btn.disabled) return;
+                    const groupEl = btn.parentElement;
+                    const group = groupEl.dataset.filterGroup;
+                    const value = btn.dataset.value;
+
+                    if (group === 'period' && value !== 'live') return;
+
+                    APP.analysisFilters[group] = value;
+                    groupEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderTop5Analysis();
+                });
+            });
+
+            // Alert Line Filters
+            document.querySelectorAll('#alert-line-filter-aqi, #alert-line-filter-noise').forEach(groupEl => {
+                groupEl.addEventListener('click', e => {
+                    const btn = e.target.closest('.filter-btn');
+                    if (!btn) return;
+                    const value = btn.dataset.value;
+
+                    APP.alertFilters.line = value;
+                    groupEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderDashboardAlertsTable();
+                });
+            });
+
+
+            // Station and Alert Line Filters
+            document.querySelectorAll('[data-filter-group="station-line"]').forEach(groupEl => {
+                groupEl.addEventListener('click', e => {
+                    const btn = e.target.closest('.filter-btn');
+                    if (!btn) return;
+                    const value = btn.dataset.value;
+
+                    APP.stationTableFilters.line = value;
+                    groupEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderTable();
+                });
+            });
+
+            // Search Bar Filter
+            document.getElementById('citySearch')?.addEventListener('input', (e) => {
+                APP.stationTableFilters.search = e.target.value;
+                // If searching, immediately switch to the station management view
+                const currentViewEl = document.querySelector(`#${APP.currentView}:not(.hidden)`);
+                if (APP.currentView.includes('dashboard-view') || (currentViewEl && currentViewEl.id.includes('dashboard-container'))) {
+                    switchView('stations-view');
+                } else {
+                    renderTable();
+                }
+            });
+            document.getElementById('searchForm')?.addEventListener('submit', (e) => e.preventDefault());
+        }
+
+        // --- Initialization ---
+
+        function init() {
+            setupEventListeners();
+            // Initial load should display dashboard view correctly
+            switchView('dashboard-view');
+
+            fetchStationsFromAPI();
+            setInterval(fetchStationsFromAPI, APP.updateInterval);
+        }
+
+        init();
+    });
+</script>
+</body>
+</html>

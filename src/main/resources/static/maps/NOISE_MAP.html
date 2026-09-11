@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mumbai Real-Time Noise Monitor</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Segoe+UI:wght@400;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            --bg: #0b1020;
+            --card: #111833;
+            --header-bg: #161b22;
+            --border-color: rgba(255, 255, 255, .1);
+            --muted: #97a3b6;
+            --text: #e8ecf6;
+            --accent1: #29B6F6;
+            --accent2: #81D4FA;
+            --logo-color: #29B6F6;
+            --glow-color-rgba: rgba(41, 182, 246, 0.4);
+            /* Noise Level Colors (Updated to be more aligned with typical categories) */
+            --quiet: #34d399;  /* Below 60 dB */
+            --moderate: #facc15;  /* 60-70 dB */
+            --loud: #fb923c;  /* 70-80 dB */
+            --very-loud: #ef4444;/* 80-90 dB */
+            --extremely-loud: #a855f7; /* 90+ dB */
+        }
+
+        body {
+            font-family:  Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            background-color: var(--bg);
+            color: var(--text);
+            transition: background-color 0.3s, color 0.3s;
+            padding-top: 70px; /* Adjust based on navbar height */
+        }
+
+        /* --- CARD & CONTENT BOX --- */
+        .content-box {
+            background: var(--card);
+            padding: 24px;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 30px rgba(0,0,0,.25);
+        }
+
+        /* --- NAVBAR --- */
+        .navbar {
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .navbar-brand {
+            color: var(--logo-color);
+            font-weight: bold;
+        }
+        .navbar-brand:hover {
+            color: var(--logo-color);
+            filter: brightness(1.2);
+        }
+        .navbar-tools { gap: 0.5rem; }
+        .nav-btn, .btn-group-toggle .btn {
+            border-radius: 20px;
+            font-weight: 500;
+            padding: 6px 16px;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid var(--accent1);
+            background-color: transparent;
+            color: var(--accent2);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-group-toggle .btn,
+        .mx-auto > .nav-btn:first-of-type {
+            box-shadow: 0 0 8px 2px var(--glow-color-rgba);
+        }
+        .nav-btn i, .btn-group-toggle .btn i { font-size: 20px; }
+        .nav-btn:hover, .nav-btn.active, .btn-group-toggle .btn:hover:not(.active) {
+            background-color: rgba(41, 182, 246, 0.2);
+            border-color: var(--accent2);
+            color: white;
+            box-shadow: 0 0 15px 5px var(--glow-color-rgba);
+        }
+        .btn-group-toggle .btn.active {
+            background-color: var(--accent1);
+            color: #FFFFFF;
+            border-color: var(--accent1);
+        }
+
+        /* Override for Rankings and Theme buttons in dark theme to have glow on hover without bg change */
+        body:not(.light-theme) .mx-auto > a.nav-btn:nth-of-type(2):hover,
+        body:not(.light-theme) #refresh-btn:hover,
+        body:not(.light-theme) .theme-toggle-btn:hover {
+            background-color: transparent;
+            box-shadow: 0 0 15px 5px var(--glow-color-rgba);
+        }
+
+        .theme-toggle-btn, #refresh-btn {
+            width: auto;
+        }
+        #refresh-btn {
+            padding: 6px 16px;
+        }
+
+        .theme-toggle-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            padding: 0;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .theme-toggle-btn .bx-sun { display: none; }
+        .theme-toggle-btn .bx-moon { display: inline-block; }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        #refresh-btn.spinning .bx-refresh {
+            animation: spin 1s linear infinite;
+        }
+
+        /* --- MAP --- */
+        #map {
+            height: 100%; width: 100%; border-radius: 0.5rem; z-index: 10;
+        }
+        /* Leaflet Marker Styling */
+        .aqi-marker, .noise-marker {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .aqi-marker div, .noise-marker div {
+            width: 40px;
+            height: 40px;
+            line-height: 34px;
+            text-align: center;
+            border-radius: 50%;
+            color: white;
+            font-weight: 700;
+            font-size: 13px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            border: 3px solid var(--card);
+            transition: all 0.1s ease;
+        }
+
+        .aqi-marker div:hover, .noise-marker div:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+        }
+
+        .leaflet-control-zoom-in, .leaflet-control-zoom-out, .leaflet-control-current-location a {
+            background-color: var(--card) !important; color: var(--text) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+        .leaflet-tile-pane { filter: brightness(0.7) contrast(1.1); }
+        .leaflet-bar a:first-child { border-top-left-radius: 4px !important; border-top-right-radius: 4px !important; }
+        .leaflet-bar a:last-child { border-bottom-left-radius: 4px !important; border-bottom-right-radius: 4px !important; }
+        .leaflet-control-current-location a {
+            width: 30px; height: 30px; line-height: 28px; font-size: 1.2rem;
+        }
+
+        /* --- CHART & TABLE --- */
+        .timeframe-capsule {
+            display: inline-flex; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 0 8px 2px var(--glow-color-rgba);
+            border: 1px solid var(--accent1);
+        }
+        .timeframe-btn {
+            padding: 4px 12px; font-size: 0.9rem; transition: all 0.2s ease-in-out;
+            background-color: transparent; color: var(--accent2); border: none;
+        }
+        .timeframe-btn:not(:last-child) { border-right: 1px solid var(--accent1); }
+        .timeframe-btn:hover { background-color: rgba(255, 255, 255, 0.05); color: white; }
+        .timeframe-btn.active { background-color: var(--accent1); color: #FFFFFF; }
+        #chart-timeframe-title {
+            background: linear-gradient(to right, var(--accent1), var(--accent2));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        #chart-timeframe-title.flipping {
+            animation: flip-box 0.6s ease-in-out;
+        }
+        @keyframes flip-box {
+            0% { transform: rotateX(0deg); }
+            50% { transform: rotateX(-90deg); }
+            100% { transform: rotateX(0deg); }
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            font-size: 12px; text-align: left; color: var(--muted);
+            background: rgba(255, 255, 255, .04);
+        }
+        th, td {
+            padding: 12px 10px; border-bottom: 1px solid var(--border-color);
+            font-size: 13px; white-space: nowrap;
+        }
+        tbody tr:hover { background: rgba(255, 255, 255, .05); }
+
+        /* --- FORMS --- */
+        input[type="text"], input[type="number"] {
+            background-color: var(--bg); color: var(--text);
+            border: 1px solid var(--border-color);
+        }
+        input[type="text"]:focus, input[type="number"]:focus {
+            background-color: var(--bg); color: var(--text); outline: none;
+            border-color: var(--accent1); box-shadow: 0 0 0 3px var(--glow-color-rgba);
+        }
+        .btn-action-blue { background-color: var(--accent1); }
+        .btn-action-blue:hover { background-color: var(--accent2); }
+
+        /* --- FOOTER --- */
+        .site-footer {
+            background-color: var(--header-bg); border-top: 1px solid var(--border-color);
+        }
+        .site-footer a { color: var(--accent1); }
+        .site-footer a:hover { color: var(--accent2); }
+
+        /* --- LIGHT THEME --- */
+        body.light-theme {
+            --bg: #f4f7fa; --card: #ffffff; --header-bg: #ffffff;
+            --border-color: #dee2e6; --muted: #6c757d; --text: #212529;
+            --accent1: #0d6efd; --accent2: #338bff; --logo-color: #0d6efd;
+            --glow-color-rgba: rgba(13, 110, 253, 0.25);
+        }
+        body.light-theme .navbar { box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        body.light-theme .content-box { box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        body.light-theme .theme-toggle-btn .bx-sun { display: inline-block; }
+        body.light-theme .theme-toggle-btn .bx-moon { display: none; }
+
+        body.light-theme .btn-group-toggle .btn,
+        body.light-theme .mx-auto > .nav-btn,
+        body.light-theme .nav-btn {
+            box-shadow: none;
+        }
+
+        body.light-theme .mx-auto > a.nav-btn:first-of-type {
+            box-shadow: 0 0 12px 4px var(--glow-color-rgba);
+        }
+
+        /* --- Light Theme Button States --- */
+        body.light-theme .nav-btn.active {
+            color: var(--accent1);
+            background-color: #e9f5ff;
+            border-color: var(--accent1);
+        }
+
+        body.light-theme .mx-auto > a.nav-btn:first-of-type.active {
+            background-color: #ffffff;
+        }
+
+        body.light-theme .btn-group-toggle .btn.active {
+            color: #ffffff;
+            background-color: var(--accent1);
+            border-color: var(--accent1);
+        }
+
+        body.light-theme .nav-btn:hover {
+            box-shadow: 0 0 12px 4px var(--glow-color-rgba);
+        }
+
+        body.light-theme .theme-toggle-btn:hover .bx-sun {
+            color: #FFC107;
+        }
+
+        body.light-theme .leaflet-tile-pane { filter: none; }
+        body.light-theme thead th { background-color: #f8f9fa; }
+        body.light-theme tbody tr:hover { background-color: #f0f3f5; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/static">EcoGauge</a>
+
+        <div class="mx-auto d-flex gap-2">
+            <div class="btn-group btn-group-toggle" role="group">
+                <a href="/maps/AQI_MAP.html" class="btn"><i class='bx bx-wind'></i> AQI</a>
+                <a href="/maps/NOISE_MAP.html" class="btn active"><i class='bx bxs-volume-full'></i> Noise</a>
+            </div>
+            <a class="nav-btn d-none d-sm-inline-flex" href="/user_ranking.html" role="button"><i class='bx bxs-bar-chart-alt-2'></i> Rankings</a>
+        </div>
+
+        <div class="d-flex align-items-center navbar-tools">
+            <button class="nav-btn" id="refresh-btn" title="Refresh Data">
+                <i class='bx bx-refresh'></i>
+                <span>Refresh</span>
+            </button>
+            <button class="nav-btn theme-toggle-btn" id="theme-toggle" title="Toggle theme">
+                <i class='bx bx-sun'></i>
+                <i class='bx bx-moon'></i>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<main class="container mx-auto p-4 max-w-7xl flex-grow">
+
+    <header class="mb-6 text-center">
+        <h1 class="text-4xl font-bold">Mumbai Noise Level Monitor</h1>
+        <p class="text-lg text-gray-400 mt-1">Real-time noise data from our internal monitoring stations</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+        <div class="lg:col-span-3 content-box flex flex-col">
+            <h2 class="text-xl font-semibold mb-4">Select a Station Marker or Search Area</h2>
+            <div class="space-y-3 mb-4">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="search-input" placeholder="Search a station name (e.g., Kurla)..." class="flex-grow px-3 py-2 rounded-md focus:outline-none transition">
+                    <button id="search-btn" class="p-2 text-white rounded-md transition-colors focus:outline-none w-10 h-10 flex items-center justify-center btn-action-blue">
+                        <i class='bx bx-search-alt-2 text-xl'></i>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="number" id="lat-input" placeholder="Latitude..." class="w-1/2 px-3 py-2 rounded-md focus:outline-none transition" step="any">
+                    <input type="number" id="lon-input" placeholder="Longitude..." class="w-1/2 px-3 py-2 rounded-md focus:outline-none transition" step="any">
+                    <button id="coord-search-btn" class="p-2 text-white rounded-md transition-colors focus:outline-none w-10 h-10 flex items-center justify-center btn-action-blue">
+                        <i class='bx bxs-map text-xl'></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-grow min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2 space-y-6">
+
+            <div id="noise-data-card" class="content-box relative hidden">
+                <div id="loader" class="absolute inset-0 bg-opacity-75 flex justify-center items-center rounded-lg z-20 hidden">
+                    <div class="loader"></div>
+                </div>
+
+                <div id="noise-content">
+                    <p class="text-gray-400">Noise Level for <span id="location-name" class="font-bold">...</span></p>
+                    <div class="flex items-baseline gap-4 my-4">
+                        <p id="noise-value" class="text-7xl font-bold">--</p>
+                        <div id="noise-level-badge" class="px-4 py-2 rounded-full font-semibold text-lg">
+                            <span id="noise-level">Loading...</span>
+                        </div>
+                    </div>
+                    <p id="noise-recommendation" class="text-gray-300 mb-6">Recommendations will appear here.</p>
+
+                    <h3 class="font-semibold text-lg mb-3 border-b pb-2">Dominant Noise Sources (Estimated)</h3>
+                    <div id="sources-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                    </div>
+                </div>
+                <div id="no-data-message" class="text-center py-10 hidden">
+                    <p class="text-xl text-gray-500">Could not retrieve noise data for this location.</p>
+                    <p class="text-gray-400 mt-2">Please select another point on the map.</p>
+                </div>
+            </div>
+
+            <div class="content-box">
+                <div class="text-center mb-4">
+                    <h4 class="text-2xl font-bold"><span id="chart-timeframe-title">Weekly</span> Noise Level Trend</h4>
+                </div>
+                <div class="flex justify-center mb-4">
+                    <div class="timeframe-capsule">
+                        <button class="timeframe-btn" data-timeframe="1D">1D</button>
+                        <button class="timeframe-btn active" data-timeframe="1W">1W</button>
+                        <button class="timeframe-btn" data-timeframe="1M">1M</button>
+                        <button class="timeframe-btn" data-timeframe="1Y">1Y</button>
+                        <button class="timeframe-btn" data-timeframe="10Y">10Y</button>
+                    </div>
+                </div>
+                <div>
+                    <canvas id="noiseChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="nearby-stations-section" class="mt-8">
+        <h2 class="text-2xl font-bold mb-2">Closest Stations to Selected Point</h2>
+        <p id="recommendation-disclaimer" class="text-sm text-gray-500 mb-4">Note: Stations listed are the closest active monitors in our database.</p>
+        <div class="overflow-x-auto rounded-lg border content-box p-0">
+            <table class="w-full text-left">
+                <thead>
+                <tr>
+                    <th>Timestamp (IST)</th>
+                    <th>Station</th>
+                    <th>Lat</th>
+                    <th>Lon</th>
+                    <th>Noise (dB)</th>
+                    <th>Level</th>
+                    <th>Distance (km)</th>
+                    <th>Category</th>
+                </tr>
+                </thead>
+                <tbody id="nearby-stations-body">
+                <tr><td colspan="8" class="text-center p-4 text-gray-500">Select a station or a point on the map to see nearby locations.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<footer class="site-footer text-center py-5 mt-auto">
+    <p class="text-gray-400">&copy; 2025 EcoGauge. All Rights Reserved.</p>
+    <p class="mt-2">
+        <a href="/maps/NOISE_MAP.html" class="hover:underline mx-2 transition-colors">Map</a> |
+        <a href="/ranking.html" class="hover:underline mx-2 transition-colors">Ranking</a> |
+        <a href="/feedback.html" class="hover:underline mx-2 transition-colors">Feedback</a>
+    </p>
+</footer>
+
+<div id="custom-alert-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[1001] hidden">
+    <div class="bg-[var(--card)] p-6 rounded-lg shadow-xl max-w-sm w-full text-center border border-[var(--border-color)]">
+        <p id="custom-alert-message" class="text-lg mb-4"></p>
+        <button id="custom-alert-close" class="bg-[var(--accent1)] text-white px-4 py-2 rounded-md hover:opacity-80 transition-opacity">OK</button>
+    </div>
+</div>
+
+<div id="location-permission-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[1001] hidden">
+    <div class="bg-[var(--card)] p-6 rounded-lg shadow-xl max-w-sm w-full text-center border border-[var(--border-color)]">
+        <h3 class="text-xl font-bold mb-2">Enable Location</h3>
+        <p id="location-permission-message" class="mb-4">To show your current location, please grant this site permission to access your device's location.</p>
+        <div class="flex justify-center gap-4">
+            <button id="location-permission-cancel" class="px-4 py-2 rounded-md transition-opacity bg-gray-600 hover:bg-gray-500 text-white">Cancel</button>
+            <button id="location-permission-enable" class="bg-[var(--accent1)] text-white px-4 py-2 rounded-md hover:opacity-80 transition-opacity">Enable</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // NEW: Define constants for API and local data storage
+    const API_STATION_DATA_URL = '/api/stations';
+    let API_STATION_DATA = [];
+    const MODE = 'noise'; // Hardcode the mode since it's a Noise map
+
+    // --- CONFIGURATION CONSTANTS RE-ADDED (Only if needed for search/bounds check) ---
+    const GEOCODING_API_URL = "https://nominatim.openstreetmap.org/search";
+    const MUMBAI_BOUNDS_COORDS = [18.89, 72.77, 19.27, 72.99]; // [S_Lat, W_Lon, N_Lat, E_Lon]
+
+    // --- UTILITY FUNCTIONS ---
+    function haversineDistance(coords1, coords2) {
+        function toRad(x) { return x * Math.PI / 180; }
+        const R = 6371; // km
+        const dLat = toRad(coords2.lat - coords1.lat);
+        const dLon = toRad(coords2.lon - coords1.lon);
+        const lat1 = toRad(coords1.lat);
+        const lat2 = toRad(coords2.lat);
+
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    function getNoiseInfo(db) {
+        if (!db) return { category: "Unknown", color: "var(--muted)", recommendation: "No data available." };
+        if (db <= 70) return { category: "Moderate", color: "var(--moderate)", recommendation: "Levels are typical for city areas. Noise is noticeable." };
+        if (db <= 85) return { category: "High", color: "var(--loud)", recommendation: "Prolonged exposure may cause annoyance. Consider limiting time." };
+        return { category: "Dangerous", color: "var(--very-loud)", recommendation: "Risk of hearing damage. Hearing protection is recommended." };
+    }
+
+    // --- SIMULATED NOISE SOURCE MAPPING ---
+    function getSimulatedNoiseSources(db) {
+        // Simulation based on noise level
+        const traffic = Math.min(db, Math.max(0, Math.round(db * 0.8 + (Math.random() * 5))));
+        const commercial = Math.min(db, Math.max(0, Math.round(db * 0.6 + (Math.random() * 5))));
+        const residential = Math.min(db, Math.max(0, Math.round(db * 0.4 + (Math.random() * 5))));
+        return { traffic, commercial, residential };
+    }
+
+    // NEW: Function to fetch data from the REST API and filter for the latest readings
+    async function fetchLatestStationData() {
+        try {
+            const response = await fetch(API_STATION_DATA_URL);
+            if (!response.ok) throw new Error('Failed to fetch station data');
+            const data = await response.json();
+
+            // Logic to filter for the newest reading of each unique station name (mimics MapPageController logic)
+            const newestDataMap = new Map();
+            data.forEach(item => {
+                const existing = newestDataMap.get(item.stationName);
+                if (!existing || new Date(item.timestamp) > new Date(existing.timestamp)) {
+                    newestDataMap.set(item.stationName, item);
+                }
+            });
+            API_STATION_DATA = Array.from(newestDataMap.values());
+        } catch (error) {
+            console.error("Error fetching station data:", error);
+            showCustomAlert("Failed to load station data from the API. Check the console.");
+            API_STATION_DATA = [];
+        }
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- CONFIGURATION ---
+        const MUMBAI_CENTER = [19.0760, 72.8777];
+
+        // --- DOM ELEMENTS ---
+        const mapElement = document.getElementById('map');
+        const noiseDataCard = document.getElementById('noise-data-card');
+        const noiseContent = document.getElementById('noise-content');
+        const noDataMessage = document.getElementById('no-data-message');
+        const locationNameEl = document.getElementById('location-name');
+        const noiseValueEl = document.getElementById('noise-value');
+        const noiseLevelBadge = document.getElementById('noise-level-badge');
+        const noiseLevelEl = document.getElementById('noise-level');
+        const noiseRecommendationEl = document.getElementById('noise-recommendation');
+        const sourcesGrid = document.getElementById('sources-grid');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const nearbyStationsBody = document.getElementById('nearby-stations-body');
+
+        const searchBtn = document.getElementById('search-btn');
+        const coordSearchBtn = document.getElementById('coord-search-btn');
+        const searchInput = document.getElementById('search-input');
+        const latInput = document.getElementById('lat-input');
+        const lonInput = document.getElementById('lon-input');
+
+        // --- CHART INITIALIZATION ---
+        let noiseChart;
+
+        // --- MAP INITIALIZATION ---
+        let map;
+        let markerGroup = L.layerGroup();
+        let clickMarker;
+
+        function initializeMap() {
+            map = L.map(mapElement).setView(MUMBAI_CENTER, 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                minZoom: 10,
+                maxZoom: 18
+            }).addTo(map);
+            map.zoomControl.setPosition('topright');
+
+            addStationMarkers(API_STATION_DATA);
+            markerGroup.addTo(map);
+
+            map.on('click', onMapClick);
+        }
+
+        function getNoiseMarkerIcon(db) {
+            const { color } = getNoiseInfo(db);
+            // MODIFICATION: Only shows the value, no units
+            return L.divIcon({
+                className: `noise-marker`,
+                html: `<div style="background-color: ${color};" class="rounded-full w-10 h-10 flex items-center justify-center text-white font-bold text-sm shadow-lg">${db.toFixed(0)}</div>`,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+        }
+
+        function addStationMarkers(stations) {
+            markerGroup.clearLayers();
+            stations.forEach(station => {
+                const db = station.noiseLevel;
+                const { category, color } = getNoiseInfo(db);
+
+                const marker = L.marker([station.lat, station.lon], {
+                    icon: getNoiseMarkerIcon(db),
+                    title: station.stationName
+                }).addTo(markerGroup);
+
+                const popupContent = `
+                        <div style="color: black;">
+                            <b>${station.stationName}</b> (${station.line})<br>
+                            Noise: <span style="font-weight: bold; color: ${color};">${db.toFixed(1)} dB (${category})</span><br>
+                            Last Reading: ${new Date(station.timestamp).toLocaleTimeString()}
+                        </div>
+                    `;
+                marker.bindPopup(popupContent);
+
+                marker.on('click', () => {
+                    displayStationData(station);
+                    renderRecommendationsTable(station);
+                });
+            });
+        }
+
+        function onMapClick(e) {
+            const { lat, lng } = e.latlng;
+
+            if (clickMarker) {
+                clickMarker.setLatLng([lat, lng]);
+            } else {
+                clickMarker = L.marker([lat, lng]).addTo(map).bindPopup("Clicked Location").openPopup();
+            }
+
+            const closestStation = findClosestStation(lat, lng, API_STATION_DATA);
+
+            if (closestStation) {
+                displayStationData(closestStation);
+                renderRecommendationsTable(closestStation);
+                map.flyTo([closestStation.lat, closestStation.lon], 14);
+            } else {
+                showNoDataMessage("No nearby station data available in our database.");
+            }
+        }
+
+        function findClosestStation(lat, lon, stations) {
+            let closest = null;
+            let minDistance = Infinity;
+
+            const searchedCoords = { lat: lat, lon: lon };
+
+            stations.forEach(station => {
+                const stationCoords = { lat: station.lat, lon: station.lon };
+                const distance = haversineDistance(searchedCoords, stationCoords);
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = station;
+                }
+            });
+            return closest;
+        }
+
+        // --- DATA DISPLAY ---
+
+        function displayStationData(station) {
+            noiseContent.classList.remove('hidden');
+            noiseDataCard.classList.remove('hidden');
+            noDataMessage.classList.add('hidden');
+
+            const db = station.noiseLevel;
+            const { category, color, recommendation } = getNoiseInfo(db);
+
+            locationNameEl.textContent = station.stationName + ' (' + station.line + ')';
+            noiseValueEl.textContent = db.toFixed(1);
+            noiseLevelEl.textContent = category;
+            noiseLevelBadge.style.backgroundColor = color;
+            noiseRecommendationEl.textContent = recommendation;
+
+            displayNoiseSources(db);
+        }
+
+        function displayNoiseSources(db) {
+            sourcesGrid.innerHTML = '';
+            const sourceLabels = { 'traffic': 'Traffic', 'commercial': 'Commercial', 'residential': 'Residential' };
+            const simulatedSources = getSimulatedNoiseSources(db);
+
+            Object.keys(sourceLabels).forEach(key => {
+                const value = simulatedSources[key];
+                if (value !== undefined && value !== null) {
+                    const el = document.createElement('div');
+                    el.className = 'p-2 rounded-md';
+                    el.style.backgroundColor = 'var(--bg)';
+                    el.innerHTML = `<p class="font-bold">${sourceLabels[key]}</p><p class="text-lg">${value} dB</p>`;
+                    sourcesGrid.appendChild(el);
+                }
+            });
+
+            if (sourcesGrid.children.length === 0) {
+                sourcesGrid.innerHTML = '<p class="col-span-full text-gray-500">No detailed source data available</p>';
+            }
+        }
+
+        function showNoDataMessage(message = "No Noise data available.") {
+            noiseContent.classList.add('hidden');
+            noiseDataCard.classList.remove('hidden');
+            noDataMessage.classList.remove('hidden');
+            noDataMessage.querySelector('p:first-child').textContent = message;
+            nearbyStationsBody.innerHTML = `<tr><td colspan="8" class="text-center p-4 text-gray-500">No station data to recommend.</td></tr>`;
+        }
+
+
+        // --- NEARBY STATIONS (Using internal data) ---
+        function renderRecommendationsTable(closestStation) {
+            const tableBody = document.getElementById('nearby-stations-body');
+            tableBody.innerHTML = '';
+
+            const recs = API_STATION_DATA.slice().sort((a,b) => {
+                const distA = haversineDistance({lat: closestStation.lat, lon: closestStation.lon}, {lat: a.lat, lon: a.lon});
+                const distB = haversineDistance({lat: closestStation.lat, lon: closestStation.lon}, {lat: b.lat, lon: b.lon});
+                return distA - distB;
+            });
+
+            recs.forEach(rec => {
+                const { category, color } = getNoiseInfo(rec.noiseLevel);
+                const distance = haversineDistance({lat: closestStation.lat, lon: closestStation.lon}, {lat: rec.lat, lon: rec.lon});
+
+                const row = `
+                        <tr>
+                            <td class="p-3 text-sm">${new Date(rec.timestamp).toLocaleTimeString('en-IN')}</td>
+                            <td class="p-3 font-semibold">${rec.stationName} (${rec.line})</td>
+                            <td class="p-3 text-sm">${rec.lat.toFixed(4)}</td>
+                            <td class="p-3 text-sm">${rec.lon.toFixed(4)}</td>
+                            <td class="p-3 font-bold" style="color: ${color};">${rec.noiseLevel.toFixed(1)} dB</td>
+                            <td class="p-3">${category}</td>
+                            <td class="p-3">${distance.toFixed(1)} km</td>
+                            <td class="p-3">${rec.noiseCategory}</td>
+                        </tr>
+                    `;
+                tableBody.innerHTML += row;
+            });
+
+            // Update table headers to match new columns
+            document.querySelector('#nearby-stations-section h2').textContent = `Closest Stations to Selected Point`;
+            document.querySelector('#recommendation-disclaimer').textContent = `Note: Stations listed are the closest active monitors in our database.`;
+            document.querySelector('#nearby-stations-section thead tr').innerHTML = `
+                    <th>Timestamp (IST)</th>
+                    <th>Station</th>
+                    <th>Lat</th>
+                    <th>Lon</th>
+                    <th>Noise (dB)</th>
+                    <th>Level</th>
+                    <th>Distance (km)</th>
+                    <th>Category</th>
+                `;
+        }
+
+        // --- CHART LOGIC (Reusing dummy data for trend chart) ---
+        const timeframeData = {
+            '1D': {
+                labels: ['12am', '3am', '6am', '9am', '12pm', '3pm', '6pm', '9pm'],
+                data: [45, 42, 50, 68, 75, 72, 65, 55]
+            },
+            '1W': {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                data: [77, 75, 73, 74, 77, 79, 81]
+            },
+            '1M': {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                data: [73, 71, 74, 75]
+            },
+            '1Y': {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                data: [78, 76, 77, 78, 79, 80, 66, 68, 71, 77, 80, 79]
+            },
+            '10Y': {
+                labels: ['2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025'],
+                data: [68, 69, 70, 72, 65, 68, 71, 72, 74, 75]
+            }
+        };
+
+        const timeframeTitles = { '1D': 'Daily', '1W': 'Weekly', '1M': 'Monthly', '1Y': 'Yearly', '10Y': 'Decadal' };
+
+        function updateChartAppearance() {
+            if (!noiseChart) return;
+            const rootStyles = getComputedStyle(document.documentElement);
+            const fontColor = rootStyles.getPropertyValue('--muted').trim();
+            const gridColor = 'rgba(128, 128, 128, 0.2)';
+            const accentColor = rootStyles.getPropertyValue('--accent1').trim();
+
+            noiseChart.options.scales.x.ticks.color = fontColor;
+            noiseChart.options.scales.x.grid.color = gridColor;
+            noiseChart.options.scales.y.ticks.color = fontColor;
+            noiseChart.options.scales.y.grid.color = gridColor;
+            noiseChart.data.datasets[0].borderColor = accentColor;
+            noiseChart.data.datasets[0].backgroundColor = rootStyles.getPropertyValue('--glow-color-rgba').trim();
+            noiseChart.update();
+        }
+
+        function updateChart(timeframe) {
+            const chartTitleSpan = document.getElementById('chart-timeframe-title');
+            chartTitleSpan.textContent = timeframeTitles[timeframe];
+            chartTitleSpan.classList.add('flipping');
+            setTimeout(() => chartTitleSpan.classList.remove('flipping'), 600);
+
+            const newData = timeframeData[timeframe];
+            if (noiseChart && noiseChart.destroy) {
+                noiseChart.destroy();
+            }
+
+            const rootStyles = getComputedStyle(document.documentElement);
+            const accentColor = rootStyles.getPropertyValue('--accent1').trim();
+
+            noiseChart = new Chart(document.getElementById('noiseChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: newData.labels,
+                    datasets: [{
+                        label: 'Noise Level (dB)',
+                        data: newData.data,
+                        fill: true,
+                        tension: 0.1,
+                        pointBackgroundColor: 'white',
+                        pointBorderColor: accentColor,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: accentColor
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {},
+                        y: { beginAtZero: false, ticks: { callback: value => value + ' dB' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            updateChartAppearance();
+        }
+
+        document.querySelectorAll('.timeframe-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.timeframe-btn').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                updateChart(this.dataset.timeframe);
+            });
+        });
+
+        // --- SEARCH HANDLERS (MODIFIED TO SEARCH INTERNAL DATABASE) ---
+        async function handleTextSearch() {
+            const query = searchInput.value.trim().toLowerCase();
+
+            if (query) {
+                const matchingStation = API_STATION_DATA.find(station =>
+                    station.stationName.toLowerCase().includes(query)
+                );
+
+                if (matchingStation) {
+                    const { lat, lon, stationName } = matchingStation;
+
+                    map.setView([lat, lon], 14);
+                    displayStationData(matchingStation);
+                    renderRecommendationsTable(matchingStation);
+
+                    if (clickMarker) clickMarker.setLatLng([lat, lon]).bindPopup(`<b>Found:</b> ${stationName}`).openPopup();
+                    else clickMarker = L.marker([lat, lon]).addTo(map).bindPopup(`<b>Found:</b> ${stationName}`).openPopup();
+
+                } else {
+                    showCustomAlert(`Station name "${query}" not found within Mumbai. Please Enter Location within Mumbai.`);
+                }
+            } else {
+                showCustomAlert("Please enter a station name to search.");
+            }
+        }
+
+        function handleCoordSearch() {
+            const lat = parseFloat(latInput.value);
+            const lon = parseFloat(lonInput.value);
+
+            if (!isNaN(lat) && !isNaN(lon)) {
+                const closestStation = findClosestStation(lat, lon, API_STATION_DATA);
+
+                if (closestStation) {
+                    map.setView([lat, lon], 14);
+                    displayStationData(closestStation);
+                    renderRecommendationsTable(closestStation);
+
+                    if (clickMarker) clickMarker.setLatLng([lat, lon]).bindPopup(`<b>Closest Station:</b> ${closestStation.stationName}`).openPopup();
+                    else clickMarker = L.marker([lat, lon]).addTo(map).bindPopup(`<b>Closest Station:</b> ${closestStation.stationName}`).openPopup();
+
+                } else {
+                    showCustomAlert(`No monitoring station found close to coordinates (${lat.toFixed(2)}, ${lon.toFixed(2)}).`);
+                    if (clickMarker) clickMarker.setLatLng([lat, lon]).bindPopup(`<b>Coordinates:</b> ${lat.toFixed(4)}, ${lon.toFixed(4)}`).openPopup();
+                    else clickMarker = L.marker([lat, lon]).addTo(map).bindPopup(`<b>Coordinates:</b> ${lat.toFixed(4)}, ${lon.toFixed(4)}`).openPopup();
+                }
+            } else {
+                showCustomAlert("Please enter valid latitude and longitude.");
+            }
+        }
+
+        searchBtn.addEventListener('click', handleTextSearch);
+        coordSearchBtn.addEventListener('click', handleCoordSearch);
+        searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTextSearch(); });
+        [latInput, lonInput].forEach(input => {
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleCoordSearch(); });
+        });
+        // --- END SEARCH HANDLERS ---
+
+        // --- INITIAL LOAD ---
+        const initialLoad = async () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.body.classList.toggle('light-theme', savedTheme === 'light');
+
+            await fetchLatestStationData(); // NEW: Await data fetch
+
+            initializeMap();
+
+            if (API_STATION_DATA && API_STATION_DATA.length > 0) {
+                const firstStation = API_STATION_DATA[0];
+                displayStationData(firstStation);
+                renderRecommendationsTable(firstStation);
+                map.setView([firstStation.lat, firstStation.lon], 14);
+                clickMarker = L.marker([firstStation.lat, firstStation.lon]).addTo(map).bindPopup(`<b>Station:</b> ${firstStation.stationName}`).openPopup();
+            } else {
+                showNoDataMessage("No station data found in the application database.");
+            }
+
+            updateChart('1W');
+
+            // Manual refresh only reloads the page to get fresh data from Spring
+            refreshBtn.addEventListener('click', () => { window.location.reload(); });
+
+        };
+
+        initialLoad();
+
+        // --- Remaining Utility Functions from original HTML ---
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        const alertModal = document.getElementById('custom-alert-modal');
+        const alertCloseBtn = document.getElementById('custom-alert-close');
+
+        themeToggle.addEventListener('click', () => {
+            const newTheme = body.classList.contains('light-theme') ? 'dark' : 'light';
+            body.classList.toggle('light-theme', newTheme === 'light');
+            localStorage.setItem('theme', newTheme);
+            updateChartAppearance();
+        });
+
+        if (alertModal && alertCloseBtn) {
+            alertCloseBtn.addEventListener('click', () => {
+                alertModal.classList.add('hidden');
+            });
+        }
+
+        function showCustomAlert(message) {
+            const messageEl = document.getElementById('custom-alert-message');
+            if (alertModal && messageEl) {
+                messageEl.textContent = message;
+                alertModal.classList.remove('hidden');
+            }
+        }
+    });
+</script>
+</body>
+</html>

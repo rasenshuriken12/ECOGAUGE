@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>EcoGauge - AQI & Noise Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Boxicons CSS -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        /* General Body Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0d1117;
+            /* Dark bluish-black background */
+            color: #c9d1d9;
+            /* Light text for readability */
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Navbar styling */
+        .navbar {
+            background-color: #161b22;
+            /* Slightly lighter than body */
+            border-bottom: 1px solid #6a5acd;
+            /* SlateBlue accent */
+        }
+
+        .navbar-brand {
+            color: #e209d0;
+            /* Pink accent */
+            font-weight: bold;
+        }
+
+        .navbar-brand:hover,
+        .navbar-brand:focus,
+        .navbar-brand:active {
+            color: #fc4ded; /* Lighter pink */
+            outline: none;
+            box-shadow: none;
+        }
+
+        /* Button Styles */
+        .nav-btn {
+            border-radius: 20px;
+            font-weight: 500;
+            padding: 6px 16px;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid #6a5acd;
+            /* SlateBlue border */
+            background-color: transparent;
+            color: #f194ff; /* Light pink text */
+            box-shadow: 0 0 8px 2px rgba(138, 43, 226, 0.3); /* Violet shadow */
+            text-decoration: none; /* Remove underline from all buttons */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem; /* Space between icon and text */
+        }
+
+        .nav-btn:hover {
+            background-color: #21262d; /* Dark grey background */
+            border-color: white;
+            color: white;
+            box-shadow: 0 0 15px 5px rgba(138, 43, 226, 0.5);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(to right, #0b0edb, #e209d0);
+            color: white;
+            padding: 100px 20px;
+            text-align: center;
+        }
+
+        .hero-section h1{
+            color: white;
+            font-weight: 700;
+            margin-bottom: 15px;
+            font-size: 3.5rem;
+        }
+
+        .hero-section p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .cta-btn {
+            font-size: 1.1rem;
+            padding: 12px 30px;
+            background-color: rgba(0, 0, 0, 0.2);
+            color: white;
+            border: 1px solid transparent;
+            border-radius: 50px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px 5px rgba(138, 43, 226, 0.4);
+        }
+        .cta-btn:hover {
+            background-color: black;
+            border-color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 0 25px 8px rgba(138, 43, 226, 0.6);
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 80px 0;
+        }
+        .feature-card {
+            background-color: #161b22;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 0 20px 8px rgba(138, 43, 226, 0.2);
+            transition: all 0.3s ease;
+            border: 1px solid #6a5acd;
+            height: 100%;
+        }
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 0 30px 12px rgba(138, 43, 226, 0.4);
+        }
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #6a5acd, #e209d0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .feature-card h3 {
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        /* Call to Action Section */
+        .cta-section {
+            background-color: #161b22;
+            padding: 80px 20px;
+            text-align: center;
+            border-radius: 15px;
+            margin: 40px 0;
+            box-shadow: 0 0 20px 8px rgba(138, 43, 226, 0.2);
+            border: 1px solid #6a5acd;
+        }
+        .cta-section h2 {
+            font-size: 2.5rem;
+            color: white;
+            margin-bottom: 20px;
+        }
+        .cta-section .lead {
+            color: white;
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #6a5acd, #e209d0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* Footer Styles */
+        footer {
+            background-color: #161b22;
+            color: #8b949e;
+            text-align: center;
+            padding: 20px 0;
+            border-top: 1px solid #6a5acd;
+        }
+        footer a {
+            color: #6a5acd;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        footer a:hover {
+            color: #836FFF;
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+
+<body>
+<div class="main-content-wrapper">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand me-auto" href="#">EcoGauge</a>
+            <div class="d-flex align-items-center">
+                <a class="nav-btn me-2" href="signup.html" role="button">Sign Up</a>
+                <a class="nav-btn" href="google-auth.html" role="button">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <h1>Cleaner Air, Calmer Cities</h1>
+            <p>Your real-time guide to understanding and improving the air quality and noise levels around you.</p>
+            <a href="#" class="cta-btn">Check Your City</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Features Section -->
+        <section class="features-section">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <i class='bx bx-wind feature-icon'></i>
+                        <h3>Real-Time AQI</h3>
+                        <p>Get up-to-the-minute Air Quality Index data for any city in the world.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <i class='bx bxs-volume-full feature-icon'></i>
+                        <h3>Noise Monitoring</h3>
+                        <p>Understand the noise pollution levels in your area and its potential impact.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <i class='bx bxs-map feature-icon'></i>
+                        <h3>Interactive Maps</h3>
+                        <p>Visualize pollution data on an interactive map to see hotspots and safe zones.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <i class='bx bxs-bar-chart-alt-2 feature-icon'></i>
+                        <h3>AQI & NPI Rankings</h3>
+                        <p>Compare pollution levels with rankings for India's cleanest and peaceful cities and states.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <i class='bx bxs-bell feature-icon'></i>
+                        <h3>Custom Alerts</h3>
+                        <p>Set up personalized alerts for high pollution levels in your saved locations.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <i class='bx bxs-user feature-icon'></i>
+                        <h3>Admin Controls</h3>
+                        <p>Manage users, monitor data sources, and oversee the platform with powerful admin tools.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Call to Action Section -->
+        <section class="cta-section">
+            <h2>Ready to Take Control of Your Environment?</h2>
+            <p class="lead mb-4">Create an account to save your favorite locations and get personalized insights.</p>
+            <a href="#" class="cta-btn">Sign Up for Free</a>
+        </section>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <p>&copy; 2025 EcoGauge. All Rights Reserved.</p>
+        <p>
+            <a href="/Aboutus.html">About Us</a> |
+            <a href="/Contactus.html">Contact</a>
+
+        </p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mumbai Real-Time AQI Monitor</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Segoe+UI:wght@400;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            --bg: #0b1020;
+            --card: #111833;
+            --header-bg: #161b22;
+            --border-color: rgba(255, 255, 255, .1);
+            --muted: #97a3b6;
+            --text: #e8ecf6;
+            --accent1: #29B6F6;
+            --accent2: #81D4FA;
+            --logo-color: #29B6F6;
+            --glow-color-rgba: rgba(41, 182, 246, 0.4);
+            --good: #34d399;
+            --moderate: #facc15;
+            --poor: #fb923c;
+            --unhealthy: #ef4444;
+            --severe: #a855f7;
+            --hazardous: #800000;
+        }
+
+        body {
+            font-family:  Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            background-color: var(--bg);
+            color: var(--text);
+            transition: background-color 0.3s, color 0.3s;
+            padding-top: 70px; /* Adjust based on navbar height */
+        }
+
+        /* --- CARD & CONTENT BOX --- */
+        .content-box {
+            background: var(--card);
+            padding: 24px;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 30px rgba(0,0,0,.25);
+        }
+
+        /* --- NAVBAR --- */
+        .navbar {
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .navbar-brand {
+            color: var(--logo-color);
+            font-weight: bold;
+        }
+        .navbar-brand:hover {
+            color: var(--logo-color);
+            filter: brightness(1.2);
+        }
+        .navbar-tools { gap: 0.5rem; }
+        .nav-btn, .btn-group-toggle .btn {
+            border-radius: 20px;
+            font-weight: 500;
+            padding: 6px 16px;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid var(--accent1);
+            background-color: transparent;
+            color: var(--accent2);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-group-toggle .btn,
+        .mx-auto > .nav-btn:first-of-type {
+            box-shadow: 0 0 8px 2px var(--glow-color-rgba);
+        }
+        .nav-btn i, .btn-group-toggle .btn i { font-size: 20px; }
+        .nav-btn:hover, .nav-btn.active, .btn-group-toggle .btn:hover:not(.active) {
+            background-color: rgba(41, 182, 246, 0.2);
+            border-color: var(--accent2);
+            color: white;
+            box-shadow: 0 0 15px 5px var(--glow-color-rgba);
+        }
+        .btn-group-toggle .btn.active {
+            background-color: var(--accent1);
+            color: #FFFFFF;
+            border-color: var(--accent1);
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        #refresh-btn.spinning .bx-refresh {
+            animation: spin 1s linear infinite;
+        }
+
+        /* --- MAP --- */
+        #map {
+            height: 100%; width: 100%; border-radius: 0.5rem; z-index: 10;
+        }
+        /* Leaflet Marker Styling */
+        .aqi-marker, .noise-marker {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .aqi-marker div, .noise-marker div {
+            width: 40px;
+            height: 40px;
+            line-height: 34px;
+            text-align: center;
+            border-radius: 50%;
+            color: white;
+            font-weight: 700;
+            font-size: 13px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            border: 3px solid var(--card);
+            transition: all 0.1s ease;
+        }
+
+        .aqi-marker div:hover, .noise-marker div:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+        }
+
+        .leaflet-control-zoom-in, .leaflet-control-zoom-out, .leaflet-control-current-location a {
+            background-color: var(--card) !important; color: var(--text) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+        .leaflet-tile-pane { filter: brightness(0.7) contrast(1.1); }
+        .leaflet-bar a:first-child { border-top-left-radius: 4px !important; border-top-right-radius: 4px !important; }
+        .leaflet-bar a:last-child { border-bottom-left-radius: 4px !important; border-bottom-right-radius: 4px !important; }
+        .leaflet-control-current-location a {
+            width: 30px; height: 30px; line-height: 28px; font-size: 1.2rem;
+        }
+
+        /* --- CHART & TABLE --- */
+        .timeframe-capsule {
+            display: inline-flex; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 0 8px 2px var(--glow-color-rgba);
+            border: 1px solid var(--accent1);
+        }
+        .timeframe-btn {
+            padding: 4px 12px; font-size: 0.9rem; transition: all 0.2s ease-in-out;
+            background-color: transparent; color: var(--accent2); border: none;
+        }
+        .timeframe-btn:not(:last-child) { border-right: 1px solid var(--accent1); }
+        .timeframe-btn:hover { background-color: rgba(255, 255, 255, 0.05); color: white; }
+        .timeframe-btn.active { background-color: var(--accent1); color: #FFFFFF; }
+        #chart-timeframe-title {
+            background: linear-gradient(to right, var(--accent1), var(--accent2));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        #chart-timeframe-title.flipping {
+            animation: flip-box 0.6s ease-in-out;
+        }
+        @keyframes flip-box {
+            0% { transform: rotateX(0deg); }
+            50% { transform: rotateX(-90deg); }
+            100% { transform: rotateX(0deg); }
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            font-size: 12px; text-align: left; color: var(--muted);
+            background: rgba(255, 255, 255, .04);
+        }
+        th, td {
+            padding: 12px 10px; border-bottom: 1px solid var(--border-color);
+            font-size: 13px; white-space: nowrap;
+        }
+        tbody tr:hover { background: rgba(255, 255, 255, .05); }
+
+        /* --- FORMS --- */
+        input[type="text"], input[type="number"] {
+            background-color: var(--bg); color: var(--text);
+            border: 1px solid var(--border-color);
+        }
+        input[type="text"]:focus, input[type="number"]:focus {
+            background-color: var(--bg); color: var(--text); outline: none;
+            border-color: var(--accent1); box-shadow: 0 0 0 3px var(--glow-color-rgba);
+        }
+        .btn-action-blue { background-color: var(--accent1); }
+        .btn-action-blue:hover { background-color: var(--accent2); }
+
+        /* --- FOOTER --- */
+        .site-footer {
+            background-color: var(--header-bg); border-top: 1px solid var(--border-color);
+        }
+        .site-footer a { color: var(--accent1); }
+        .site-footer a:hover { color: var(--accent2); }
+
+        /* --- LIGHT THEME --- */
+        body.light-theme {
+            --bg: #f4f7fa; --card: #ffffff; --header-bg: #ffffff;
+            --border-color: #dee2e6; --muted: #6c757d; --text: #212529;
+            --accent1: #0d6efd; --accent2: #338bff; --logo-color: #0d6efd;
+            --glow-color-rgba: rgba(13, 110, 253, 0.25);
+        }
+        body.light-theme .navbar { box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        body.light-theme .content-box { box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        body.light-theme .theme-toggle-btn .bx-sun { display: inline-block; }
+        body.light-theme .theme-toggle-btn .bx-moon { display: none; }
+
+        body.light-theme .btn-group-toggle .btn,
+        body.light-theme .mx-auto > .nav-btn,
+        body.light-theme .nav-btn {
+            box-shadow: none;
+        }
+
+        body.light-theme .mx-auto > a.nav-btn:first-of-type {
+            box-shadow: 0 0 12px 4px var(--glow-color-rgba);
+        }
+
+        /* --- Light Theme Button States --- */
+        body.light-theme .nav-btn.active {
+            color: var(--accent1);
+            background-color: #e9f5ff;
+            border-color: var(--accent1);
+        }
+
+        body.light-theme .mx-auto > a.nav-btn:first-of-type.active {
+            background-color: #ffffff;
+        }
+
+        body.light-theme .btn-group-toggle .btn.active {
+            color: #ffffff;
+            background-color: var(--accent1);
+            border-color: var(--accent1);
+        }
+
+        body.light-theme .nav-btn:hover {
+            box-shadow: 0 0 12px 4px var(--glow-color-rgba);
+        }
+
+        body.light-theme .theme-toggle-btn:hover .bx-sun {
+            color: #FFC107;
+        }
+
+        body.light-theme .leaflet-tile-pane { filter: none; }
+        body.light-theme thead th { background-color: #f8f9fa; }
+        body.light-theme tbody tr:hover { background-color: #f0f3f5; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/static">EcoGauge</a>
+
+        <div class="mx-auto d-flex gap-2">
+            <div class="btn-group btn-group-toggle" role="group">
+                <a href="/maps/AQI_MAP.html" class="btn active"><i class='bx bx-wind'></i> AQI</a>
+                <a href="/maps/NOISE_MAP.html" class="btn"><i class='bx bxs-volume-full'></i> Noise</a>
+            </div>
+              <a class="nav-btn" href="/maps/AQI_MAP.html" role="button" title="Map View">
+                <i class='bx bxs-map'></i> <span class="btn-text">Map</span>
+            </a>
+
+            <a class="nav-btn" href="/user_ranking.html" role="button" title="View Rankings">
+                <i class='bx bxs-bar-chart-alt-2'></i> <span class="btn-text">Rankings</span>
+            </a>
+        </div>
+
+        <div class="d-flex align-items-center navbar-tools">
+            <button class="nav-btn" id="refresh-btn" title="Refresh Data">
+                <i class='bx bx-refresh'></i>
+                <span>Refresh</span>
+            </button>
+            <button class="nav-btn theme-toggle-btn" id="theme-toggle" title="Toggle theme">
+                <i class='bx bx-sun'></i>
+                <i class='bx bx-moon'></i>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<main class="container mx-auto p-4 max-w-7xl flex-grow">
+
+    <header class="mb-6 text-center">
+        <h1 class="text-4xl font-bold">Mumbai Air Quality Index Monitor</h1>
+        <p class="text-lg text-gray-400 mt-1">Real-time air quality data from our internal monitoring stations</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+        <div class="lg:col-span-3 content-box flex flex-col">
+            <h2 class="text-xl font-semibold mb-4">Select a Station Marker or Search Area</h2>
+            <div class="space-y-3 mb-4">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="search-input" placeholder="Search a station name (e.g., Dadar)..." class="flex-grow px-3 py-2 rounded-md focus:outline-none transition">
+                    <button id="search-btn" class="p-2 text-white rounded-md transition-colors focus:outline-none w-10 h-10 flex items-center justify-center btn-action-blue">
+                        <i class='bx bx-search-alt-2 text-xl'></i>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="number" id="lat-input" placeholder="Latitude..." class="w-1/2 px-3 py-2 rounded-md focus:outline-none transition" step="any">
+                    <input type="number" id="lon-input" placeholder="Longitude..." class="w-1/2 px-3 py-2 rounded-md focus:outline-none transition" step="any">
+                    <button id="coord-search-btn" class="p-2 text-white rounded-md transition-colors focus:outline-none w-10 h-10 flex items-center justify-center btn-action-blue">
+                        <i class='bx bxs-map text-xl'></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-grow min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2 space-y-6">
+
+            <div id="aqi-data-card" class="content-box relative hidden">
+                <div id="loader" class="absolute inset-0 bg-opacity-75 flex justify-center items-center rounded-lg z-20 hidden">
+                    <div class="loader"></div>
+                </div>
+
+                <div id="aqi-content">
+                    <p class="text-gray-400">AQI for <span id="location-name" class="font-bold">...</span></p>
+                    <div class="flex items-baseline gap-4 my-4">
+                        <p id="aqi-value" class="text-7xl font-bold">--</p>
+                        <div id="aqi-level-badge" class="px-4 py-2 rounded-full font-semibold text-lg">
+                            <span id="aqi-level">Loading...</span>
+                        </div>
+                    </div>
+                    <p id="aqi-recommendation" class="text-gray-300 mb-6">Health recommendations will appear here.</p>
+
+                    <h3 class="font-semibold text-lg mb-3 border-b pb-2">Pollutant Details (μg/m³)</h3>
+                    <div id="pollutants-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                    </div>
+                </div>
+                <div id="no-data-message" class="text-center py-10 hidden">
+                    <p class="text-xl text-gray-500">No AQI data available for this location.</p>
+                    <p class="text-gray-400 mt-2">Please select another point on the map.</p>
+                </div>
+            </div>
+
+            <div class="content-box">
+                <div class="text-center mb-4">
+                    <h4 class="text-2xl font-bold"><span id="chart-timeframe-title">Weekly</span> AQI Trend</h4>
+                </div>
+                <div class="flex justify-center mb-4">
+                    <div class="timeframe-capsule">
+                        <button class="timeframe-btn" data-timeframe="1D">1D</button>
+                        <button class="timeframe-btn active" data-timeframe="1W">1W</button>
+                        <button class="timeframe-btn" data-timeframe="1M">1M</button>
+                        <button class="timeframe-btn" data-timeframe="1Y">1Y</button>
+                        <button class="timeframe-btn" data-timeframe="10Y">10Y</button>
+                    </div>
+                </div>
+                <div>
+                    <canvas id="aqiChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="nearby-stations-section" class="mt-8">
+        <h2 class="text-2xl font-bold mb-2">Closest Stations to Selected Point</h2>
+        <p id="recommendation-disclaimer" class="text-sm text-gray-500 mb-4">Note: Stations listed are the closest active monitors in our database.</p>
+        <div class="overflow-x-auto rounded-lg border content-box p-0">
+            <table class="w-full text-left">
+                <thead>
+                <tr>
+                    <th>Timestamp (IST)</th>
+                    <th>City</th>
+                    <th>Station</th>
+                    <th>Lat</th>
+                    <th>Lon</th>
+                    <th>AQI</th>
+                    <th>Category</th>
+                    <th>Distance (km)</th>
+                    <th>Dominant Pollutant</th>
+                </tr>
+                </thead>
+                <tbody id="nearby-stations-body">
+                <tr><td colspan="9" class="text-center p-4 text-gray-500">Select a station or a point on the map to see nearby locations.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<footer class="site-footer text-center py-5 mt-auto">
+    <p class="text-gray-400">&copy; 2025 EcoGauge. All Rights Reserved.</p>
+    <p class="mt-2">
+        <a href="/maps/aqi.html" class="hover:underline mx-2 transition-colors">Map</a> |
+        <a href="/ranking.html" class="hover:underline mx-2 transition-colors">Ranking</a> |
+        <a href="/feedback.html" class="hover:underline mx-2 transition-colors">Feedback</a>
+    </p>
+</footer>
+
+<div id="custom-alert-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[1001] hidden">
+    <div class="bg-[var(--card)] p-6 rounded-lg shadow-xl max-w-sm w-full text-center border border-[var(--border-color)]">
+        <p id="custom-alert-message" class="text-lg mb-4"></p>
+        <button id="custom-alert-close" class="bg-[var(--accent1)] text-white px-4 py-2 rounded-md hover:opacity-80 transition-opacity">OK</button>
+    </div>
+</div>
+
+<script>
+    // NEW: Define constants for API and local data storage
+    const API_STATION_DATA_URL = '/api/stations';
+    let API_STATION_DATA = [];
+    const MODE = 'aqi'; // Hardcode the mode since it's an AQI map
+
+    // --- CONFIGURATION CONSTANTS RE-ADDED (Only if needed for search/bounds check) ---
+    const GEOCODING_API_URL = "https://nominatim.openstreetmap.org/search";
+    const MUMBAI_BOUNDS_COORDS = [18.89, 72.77, 19.27, 72.99]; // [S_Lat, W_Lon, N_Lat, E_Lon]
+
+    // --- UTILITY FUNCTIONS ---
+    function haversineDistance(coords1, coords2) {
+        function toRad(x) { return x * Math.PI / 180; }
+        const R = 6371; // km
+        const dLat = toRad(coords2.lat - coords1.lat);
+        const dLon = toRad(coords2.lon - coords1.lon);
+        const lat1 = toRad(coords1.lat);
+        const lat2 = toRad(coords2.lat);
+
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    function getAqiInfo(aqi) {
+        // Mirrors logic from DataRestController.java
+        if (!aqi || aqi === 'N/A') return { category: "Unknown", className: "unknown", color: "var(--muted)", recommendation: "No data available." };
+        if (aqi <= 50) return { category: "Good", className: "good", color: "var(--good)", recommendation: "Air quality is good. Enjoy outdoor activities." };
+        if (aqi <= 100) return { category: "Moderate", className: "moderate", color: "var(--moderate)", recommendation: "Unusually sensitive people should consider limiting prolonged outdoor exertion." };
+        if (aqi <= 150) return { category: "Poor", className: "poor", color: "var(--poor)", recommendation: "Sensitive groups should reduce prolonged or heavy exertion." };
+        if (aqi <= 200) return { category: "Unhealthy", className: "unhealthy", color: "var(--unhealthy)", recommendation: "Everyone may begin to experience health effects; sensitive groups should avoid outdoor activities." };
+        if (aqi <= 300) return { category: "Severe", className: "severe", color: "var(--severe)", recommendation: "Health warnings of emergency conditions. Everyone is more likely to be affected." };
+        return { category: "Hazardous", className: "hazardous", color: "var(--hazardous)", recommendation: "Health alert: everyone should avoid all outdoor exertion." };
+    }
+
+    // NEW: Function to fetch data from the REST API and filter for the latest readings
+    async function fetchLatestStationData() {
+        try {
+            const response = await fetch(API_STATION_DATA_URL);
+            if (!response.ok) throw new Error('Failed to fetch station data');
+            const data = await response.json();
+
+            // Logic to filter for the newest reading of each unique station name (mimics MapPageController logic)
+            const newestDataMap = new Map();
+            data.forEach(item => {
+                const existing = newestDataMap.get(item.stationName);
+                if (!existing || new Date(item.timestamp) > new Date(existing.timestamp)) {
+                    newestDataMap.set(item.stationName, item);
+                }
+            });
+            API_STATION_DATA = Array.from(newestDataMap.values());
+        } catch (error) {
+            console.error("Error fetching station data:", error);
+            showCustomAlert("Failed to load station data from the API. Check the console.");
+            API_STATION_DATA = [];
+        }
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- CONFIGURATION ---
+        const MUMBAI_CENTER = [19.0760, 72.8777];
+
+        // --- DOM ELEMENTS ---
+        const mapElement = document.getElementById('map');
+        const aqiDataCard = document.getElementById('aqi-data-card');
+        const aqiContent = document.getElementById('aqi-content');
+        const noDataMessage = document.getElementById('no-data-message');
+        const locationNameEl = document.getElementById('location-name');
+        const aqiValueEl = document.getElementById('aqi-value');
+        const aqiLevelBadge = document.getElementById('aqi-level-badge');
+        const aqiLevelEl = document.getElementById('aqi-level');
+        const aqiRecommendationEl = document.getElementById('aqi-recommendation');
+        const pollutantsGrid = document.getElementById('pollutants-grid');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const nearbyStationsBody = document.getElementById('nearby-stations-body');
+
+        const searchBtn = document.getElementById('search-btn');
+        const coordSearchBtn = document.getElementById('coord-search-btn');
+        const searchInput = document.getElementById('search-input');
+        const latInput = document.getElementById('lat-input');
+        const lonInput = document.getElementById('lon-input');
+
+        // --- CHART INITIALIZATION ---
+        let aqiChart;
+
+        // --- MAP INITIALIZATION ---
+        let map;
+        let markerGroup = L.layerGroup();
+        let clickMarker;
+
+        function initializeMap() {
+            map = L.map(mapElement).setView(MUMBAI_CENTER, 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                minZoom: 10,
+                maxZoom: 18
+            }).addTo(map);
+            map.zoomControl.setPosition('topright');
+
+            addStationMarkers(API_STATION_DATA);
+            markerGroup.addTo(map);
+
+            map.on('click', onMapClick);
+        }
+
+        function getAqiMarkerIcon(aqi) {
+            const { color, className } = getAqiInfo(aqi);
+            // MODIFICATION: Only shows the value, no units
+            return L.divIcon({
+                className: `aqi-marker ${className}`,
+                html: `<div style="background-color: ${color};" class="rounded-full w-10 h-10 flex items-center justify-center text-white font-bold text-sm shadow-lg">${aqi || '--'}</div>`,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+        }
+
+        function addStationMarkers(stations) {
+            markerGroup.clearLayers();
+            stations.forEach(station => {
+                const aqi = station.aqiValue;
+                const { category, color } = getAqiInfo(aqi);
+
+                const marker = L.marker([station.lat, station.lon], {
+                    icon: getAqiMarkerIcon(aqi),
+                    title: station.stationName
+                }).addTo(markerGroup);
+
+                const popupContent = `
+                        <div style="color: black;">
+                            <b>${station.stationName}</b> (${station.line})<br>
+                            AQI: <span style="font-weight: bold; color: ${color};">${aqi} (${category})</span><br>
+                            Dominant: ${station.dominantPollutant || 'N/A'}<br>
+                            Last Reading: ${new Date(station.timestamp).toLocaleTimeString()}
+                        </div>
+                    `;
+                marker.bindPopup(popupContent);
+
+                marker.on('click', () => {
+                    displayStationData(station);
+                    renderRecommendationsTable(station);
+                });
+            });
+        }
+
+        function onMapClick(e) {
+            const { lat, lng } = e.latlng;
+
+            // Use a standard marker for the clicked point
+            if (clickMarker) {
+                clickMarker.setLatLng([lat, lng]);
+            } else {
+                clickMarker = L.marker([lat, lng]).addTo(map).bindPopup("Clicked Location").openPopup();
+            }
+
+            const closestStation = findClosestStation(lat, lng, API_STATION_DATA);
+
+            if (closestStation) {
+                displayStationData(closestStation);
+                renderRecommendationsTable(closestStation);
+                map.flyTo([closestStation.lat, closestStation.lon], 14);
+            } else {
+                showNoDataMessage("No nearby station data available in our database.");
+            }
+        }
+
+        function findClosestStation(lat, lon, stations) {
+            let closest = null;
+            let minDistance = Infinity;
+
+            const searchedCoords = { lat: lat, lon: lon };
+
+            stations.forEach(station => {
+                const stationCoords = { lat: station.lat, lon: station.lon };
+                const distance = haversineDistance(searchedCoords, stationCoords);
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = station;
+                }
+            });
+            return closest;
+        }
+
+        // --- DATA DISPLAY ---
+
+        function displayStationData(station) {
+            aqiDataCard.classList.remove('hidden');
+            aqiContent.classList.remove('hidden');
+            noDataMessage.classList.add('hidden');
+
+            const aqi = station.aqiValue;
+            const { category, color, recommendation } = getAqiInfo(aqi);
+
+            locationNameEl.textContent = station.stationName + ' (' + station.line + ')';
+            locationNameEl.style.color = 'var(--text)';
+            aqiValueEl.textContent = aqi;
+            aqiLevelEl.textContent = category;
+            aqiLevelBadge.style.backgroundColor = color;
+            aqiLevelBadge.style.color = (aqi <= 100 && category !== 'Moderate') ? '#000' : '#FFF';
+            aqiRecommendationEl.textContent = recommendation;
+
+            displayPollutants(station);
+        }
+
+        function displayPollutants(station) {
+            pollutantsGrid.innerHTML = '';
+            const pollutantLabels = { 'pm25': 'PM₂.₅', 'pm10': 'PM₁₀', 'no2': 'NO₂', 'o3': 'O₃' };
+            const pollutants = {
+                pm25: station.pm25,
+                pm10: station.pm10,
+                no2: station.no2,
+                o3: station.o3
+            };
+
+            Object.keys(pollutantLabels).forEach(key => {
+                const value = pollutants[key];
+                if (value !== undefined && value !== null) {
+                    const el = document.createElement('div');
+                    el.className = 'p-2 rounded-md';
+                    el.style.backgroundColor = 'var(--bg)';
+                    el.innerHTML = `<p class="font-bold">${pollutantLabels[key]}</p><p class="text-lg">${value.toFixed(1)}</p>`;
+                    pollutantsGrid.appendChild(el);
+                }
+            });
+
+            if (pollutantsGrid.children.length === 0) {
+                pollutantsGrid.innerHTML = '<p class="col-span-full text-gray-500">No detailed pollutant data available</p>';
+            }
+        }
+
+        function showNoDataMessage(message = "No AQI data available.") {
+            aqiContent.classList.add('hidden');
+            aqiDataCard.classList.remove('hidden');
+            noDataMessage.classList.remove('hidden');
+            noDataMessage.querySelector('p:first-child').textContent = message;
+            nearbyStationsBody.innerHTML = `<tr><td colspan="9" class="text-center p-4 text-gray-500">No station data to recommend.</td></tr>`;
+        }
+
+        // --- CHART LOGIC (Reusing dummy data for trend chart) ---
+        const timeframeData = {
+            '1D': {
+                labels: ['12am', '3am', '6am', '9am', '12pm', '3pm', '6pm', '9pm'],
+                data: [150, 152, 155, 160, 158, 155, 153, 152]
+            },
+            '1W': {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                data: [165, 159, 180, 181, 156, 155, 152]
+            },
+            '1M': {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                data: [158, 162, 155, 152]
+            },
+            '1Y': {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                data: [180, 175, 160, 140, 120, 110, 130, 152, 165, 170, 175, 185]
+            },
+            '10Y': {
+                labels: ['2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025'],
+                data: [190, 185, 188, 175, 160, 165, 170, 162, 155, 152]
+            }
+        };
+
+        const timeframeTitles = {
+            '1D': 'Daily', '1W': 'Weekly', '1M': 'Monthly', '1Y': 'Yearly', '10Y': 'Decadal'
+        };
+
+        function updateChartAppearance() {
+            if (!aqiChart) return;
+            const rootStyles = getComputedStyle(document.documentElement);
+            const fontColor = rootStyles.getPropertyValue('--muted').trim();
+            const gridColor = 'rgba(128, 128, 128, 0.2)';
+            const accentColor = rootStyles.getPropertyValue('--accent1').trim();
+
+            aqiChart.options.scales.x.ticks.color = fontColor;
+            aqiChart.options.scales.x.grid.color = gridColor;
+            aqiChart.options.scales.y.ticks.color = fontColor;
+            aqiChart.options.scales.y.grid.color = gridColor;
+            aqiChart.data.datasets[0].borderColor = accentColor;
+            aqiChart.data.datasets[0].backgroundColor = rootStyles.getPropertyValue('--glow-color-rgba').trim();
+            aqiChart.update();
+        }
+
+        function updateChart(timeframe) {
+            const chartTitleSpan = document.getElementById('chart-timeframe-title');
+            chartTitleSpan.textContent = timeframeTitles[timeframe];
+            chartTitleSpan.classList.add('flipping');
+            setTimeout(() => chartTitleSpan.classList.remove('flipping'), 600);
+
+            const newData = timeframeData[timeframe];
+            if (aqiChart && aqiChart.destroy) {
+                aqiChart.destroy();
+            }
+
+            const rootStyles = getComputedStyle(document.documentElement);
+            const accentColor = rootStyles.getPropertyValue('--accent1').trim();
+
+            aqiChart = new Chart(document.getElementById('aqiChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: newData.labels,
+                    datasets: [{
+                        label: 'AQI',
+                        data: newData.data,
+                        fill: true,
+                        tension: 0.1,
+                        pointBackgroundColor: 'white',
+                        pointBorderColor: accentColor,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: accentColor
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {},
+                        y: { beginAtZero: false }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+            updateChartAppearance();
+        }
+
+        document.querySelectorAll('.timeframe-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.timeframe-btn').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                updateChart(this.dataset.timeframe);
+            });
+        });
+
+
+        // --- NEARBY STATIONS (Using internal data) ---
+        function renderRecommendationsTable(closestStation) {
+            const tableBody = document.getElementById('nearby-stations-body');
+            tableBody.innerHTML = '';
+
+            const recs = API_STATION_DATA.slice().sort((a,b) => {
+                const distA = haversineDistance({lat: closestStation.lat, lon: closestStation.lon}, {lat: a.lat, lon: a.lon});
+                const distB = haversineDistance({lat: closestStation.lat, lon: closestStation.lon}, {lat: b.lat, lon: b.lon});
+                return distA - distB;
+            });
+
+            recs.forEach(rec => {
+                const { category, color } = getAqiInfo(rec.aqiValue);
+                const distance = haversineDistance({lat: closestStation.lat, lon: closestStation.lon}, {lat: rec.lat, lon: rec.lon});
+
+                const row = `
+                        <tr>
+                            <td class="p-3 text-sm">${new Date(rec.timestamp).toLocaleTimeString('en-IN')}</td>
+                            <td class="p-3">Mumbai</td>
+                            <td class="p-3 font-semibold">${rec.stationName} (${rec.line})</td>
+                            <td class="p-3 text-sm">${rec.lat.toFixed(4)}</td>
+                            <td class="p-3 text-sm">${rec.lon.toFixed(4)}</td>
+                            <td class="p-3 font-bold" style="color: ${color};">${rec.aqiValue}</td>
+                            <td class="p-3">${category}</td>
+                            <td class="p-3">${distance.toFixed(1)} km</td>
+                            <td class="p-3">${rec.dominantPollutant}</td>
+                        </tr>
+                    `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        // --- SEARCH HANDLERS (MODIFIED TO SEARCH INTERNAL DATABASE) ---
+        async function handleTextSearch() {
+            const query = searchInput.value.trim().toLowerCase();
+
+            if (query) {
+                // 1. Search internal station data for a name match
+                const matchingStation = API_STATION_DATA.find(station =>
+                    station.stationName.toLowerCase().includes(query)
+                );
+
+                if (matchingStation) {
+                    const { lat, lon, stationName } = matchingStation;
+
+                    // 2. Display the data and center the map on the found station
+                    map.setView([lat, lon], 14);
+                    displayStationData(matchingStation);
+                    renderRecommendationsTable(matchingStation);
+
+                    // 3. Update clickMarker to show the found station
+                    if (clickMarker) clickMarker.setLatLng([lat, lon]).bindPopup(`<b>Found:</b> ${stationName}`).openPopup();
+                    else clickMarker = L.marker([lat, lon]).addTo(map).bindPopup(`<b>Found:</b> ${stationName}`).openPopup();
+
+                } else {
+                    // 4. Show error if name is random/not in database (NOMINATIM REMOVED)
+                    showCustomAlert(`Station name "${query}" not found within Mumbai. Please Enter Location within Mumbai.`);
+                    // Do not attempt external search or centering on a non-database point
+                }
+            } else {
+                showCustomAlert("Please enter a station name to search.");
+            }
+        }
+
+        function handleCoordSearch() {
+            const lat = parseFloat(latInput.value);
+            const lon = parseFloat(lonInput.value);
+
+            if (!isNaN(lat) && !isNaN(lon)) {
+                // 1. Find the closest station to the entered coordinates
+                const closestStation = findClosestStation(lat, lon, API_STATION_DATA);
+
+                if (closestStation) {
+                    // 2. Display the data and center map on the CLOSEST found station
+                    map.setView([lat, lon], 14);
+                    displayStationData(closestStation);
+                    renderRecommendationsTable(closestStation);
+
+                    // 3. Use a marker for the searched coordinates
+                    if (clickMarker) clickMarker.setLatLng([lat, lon]).bindPopup(`<b>Closest Station:</b> ${closestStation.stationName}`).openPopup();
+                    else clickMarker = L.marker([lat, lon]).addTo(map).bindPopup(`<b>Closest Station:</b> ${closestStation.stationName}`).openPopup();
+
+                } else {
+                    // 4. Fallback/Error
+                    showCustomAlert(`No monitoring station found close to coordinates (${lat.toFixed(2)}, ${lon.toFixed(2)}).`);
+                    // Set a temporary marker for visual feedback
+                    if (clickMarker) clickMarker.setLatLng([lat, lon]).bindPopup(`<b>Coordinates:</b> ${lat.toFixed(4)}, ${lon.toFixed(4)}`).openPopup();
+                    else clickMarker = L.marker([lat, lon]).addTo(map).bindPopup(`<b>Coordinates:</b> ${lat.toFixed(4)}, ${lon.toFixed(4)}`).openPopup();
+                }
+            } else {
+                showCustomAlert("Please enter valid latitude and longitude.");
+            }
+        }
+
+        searchBtn.addEventListener('click', handleTextSearch);
+        coordSearchBtn.addEventListener('click', handleCoordSearch);
+        searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTextSearch(); });
+        [latInput, lonInput].forEach(input => {
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleCoordSearch(); });
+        });
+        // --- END SEARCH HANDLERS ---
+
+        // --- INITIAL LOAD ---
+        const initialLoad = async () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.body.classList.toggle('light-theme', savedTheme === 'light');
+
+            await fetchLatestStationData(); // NEW: Await data fetch
+
+            initializeMap();
+
+            if (API_STATION_DATA && API_STATION_DATA.length > 0) {
+                const firstStation = API_STATION_DATA[0];
+                displayStationData(firstStation);
+                renderRecommendationsTable(firstStation);
+                map.setView([firstStation.lat, firstStation.lon], 14);
+                clickMarker = L.marker([firstStation.lat, firstStation.lon]).addTo(map).bindPopup(`<b>Station:</b> ${firstStation.stationName}`).openPopup();
+            } else {
+                showNoDataMessage("No station data found in the application database.");
+            }
+
+            updateChart('1W');
+
+            // Manual refresh only reloads the page to get fresh data from Spring
+            refreshBtn.addEventListener('click', () => { window.location.reload(); });
+        };
+
+        initialLoad();
+
+        // --- Remaining Utility Functions from original HTML ---
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        const alertModal = document.getElementById('custom-alert-modal');
+        const alertCloseBtn = document.getElementById('custom-alert-close');
+
+        themeToggle.addEventListener('click', () => {
+            const newTheme = body.classList.contains('light-theme') ? 'dark' : 'light';
+            body.classList.toggle('light-theme', newTheme === 'light');
+            localStorage.setItem('theme', newTheme);
+            updateChartAppearance();
+        });
+
+        if (alertModal && alertCloseBtn) {
+            alertCloseBtn.addEventListener('click', () => {
+                alertModal.classList.add('hidden');
+            });
+        }
+
+        function showCustomAlert(message) {
+            const messageEl = document.getElementById('custom-alert-message');
+            if (alertModal && messageEl) {
+                messageEl.textContent = message;
+                alertModal.classList.remove('hidden');
+            }
+        }
+    });
+</script>
+</body>
+</html>

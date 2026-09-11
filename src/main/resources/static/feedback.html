@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback | EcoGauge</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card: #111833;
+            --header-bg: #161b22;
+            --border-color: rgba(255, 255, 255, .1);
+            --muted: #97a3b6;
+            --text: #e8ecf6;
+            --accent1: #00aeff;
+            --accent2: #29B6F6;
+            --logo-color: #29B6F6;
+            --glow-color-rgba: rgba(41, 182, 246, 0.4);
+            --success-bg: rgba(41, 182, 246, 0.1);
+            --success-border: var(--accent2);
+            --success-text: var(--accent2);
+            --error-bg: rgba(239, 68, 68, 0.1);
+            --error-border: #ef4444;
+            --error-text: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            background: linear-gradient(120deg, #0b1020 0%, #0e1430 60%, #151a3a 100%);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 10vh;
+        }
+
+        .site-nav {
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(6px);
+            background: rgba(22, 27, 34, .7);
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--logo-color);
+            text-decoration: none;
+            transition: filter 0.2s ease;
+        }
+
+        .logo:hover {
+            filter: brightness(1.2);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent2);
+        }
+
+        .nav-links a.active {
+            color: var(--accent1);
+            font-weight: 600;
+        }
+
+        main {
+            padding: 20px 24px 60px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-grow: 1;
+        }
+
+        .page-header {
+            text-align: center;
+            padding-top: 60px;
+            padding-bottom: 40px;
+            margin-bottom: 40px;
+        }
+
+        .page-header h1 {
+            font-size: clamp(28px, 5vw, 48px);
+            font-weight: 700;
+            color: #fff;
+            margin: 0;
+        }
+
+        .page-header p {
+            font-size: 18px;
+            color: var(--muted);
+            margin-top: 8px;
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feedback-container {
+            width: 100%;
+            max-width: 600px;
+            gap: 30px;
+            background: radial-gradient(1200px 420px at -20% -20%, rgba(111, 86, 250, .08), transparent 60%),
+            radial-gradient(800px 300px at 120% 140%, rgba(79, 156, 255, .06), transparent 55%),
+            linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+            border: 1px solid rgba(255, 255, 255, .08);
+            padding: 30px 40px;
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+        }
+
+        .feedback-container h2 {
+            font-size: 24px;
+            color: #fff;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+            font-size: 16px;
+        }
+
+        .form-group option {
+            background: var(--card);
+            color: var(--text);
+        }
+
+        .form-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: var(--accent1);
+            box-shadow: 0 0 0 3px var(--glow-color-rgba);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .submit-btn {
+            cursor: pointer;
+            border: 1px solid var(--accent1);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            background: var(--accent1);
+            transition: all 0.2s ease;
+            font-weight: 600;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .submit-btn:hover {
+            background-color: var(--accent2);
+            border-color: var(--accent2);
+            box-shadow: 0 0 15px 4px var(--glow-color-rgba);
+        }
+
+        .message-box {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+
+        #successMessage {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid var(--success-border);
+        }
+
+        #errorMessage {
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            border: 1px solid var(--error-border);
+        }
+
+        .site-footer {
+            background-color: var(--header-bg);
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .site-footer p {
+            color: var(--muted);
+            margin: 4px 0 0 0;
+        }
+
+        .site-footer a {
+            color: var(--accent1);
+            text-decoration: none;
+            margin: 0 8px;
+            transition: color 0.2s ease, text-decoration 0.2s ease;
+        }
+
+        .site-footer a:hover {
+            color: var(--accent2);
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+<nav class="site-nav">
+    <div class="nav-container">
+        <a class="logo" href="/AQI_Home.html">EcoGauge</a>
+        <div class="nav-links">
+            <a href="/user_ranking.html">Ranking</a>
+            <a href="/feedback.html" class="active">Feedback</a>
+            <a href="/Contactus.html">Contact</a>
+        </div>
+    </div>
+</nav>
+
+<main>
+    <header class="page-header">
+        <h1>Feedback Form</h1>
+        <p>Your insights are valuable. Help us improve EcoGauge by sharing your thoughts, suggestions, or bug reports.</p>
+    </header>
+
+    <div class="feedback-container">
+        <form id="feedbackForm">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" placeholder="Yash Singh" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" placeholder="yashsingh123@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="region">Region</label>
+                <select id="region" name="region" required>
+                    <option value="Central">Central</option>
+                    <option value="Western">Western</option>
+                    <option value="Harbour">Harbour</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" name="location" placeholder="City, Area" required>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Your Feedback</label>
+                <textarea id="message" name="message" rows="4" required placeholder="Your message helps us serve you better..."></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn">Submit Feedback</button>
+        </form>
+        <div id="successMessage" class="message-box">
+            Thank you for your feedback! It has been successfully recorded.
+        </div>
+        <div id="errorMessage" class="message-box">
+            Submission failed. Please check your network and try again.
+        </div>
+    </div>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; <span id="year"></span> EcoGauge. All Rights Reserved.</p>
+    <p>
+        <a href="/user_ranking.html">Ranking</a> |
+        <a href="About_Us.html">About Us</a> |
+        <a href="Contact_Us.html">Contact</a>
+    </p>
+</footer>
+
+<script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const FEEDBACK_API_URL = '/api/feedback';
+
+    const feedbackForm = document.getElementById('feedbackForm');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+
+    feedbackForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        successMessage.style.display = 'none';
+        errorMessage.style.display = 'none';
+
+        const formData = new FormData(feedbackForm);
+        const feedbackData = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch(FEEDBACK_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(feedbackData)
+            });
+
+            if (response.ok) {
+                successMessage.style.display = 'block';
+                feedbackForm.reset();
+
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+
+            } else {
+                errorMessage.style.display = 'block';
+                console.error("Server responded with status:", response.status);
+            }
+
+        } catch (error) {
+            errorMessage.style.display = 'block';
+            console.error("Network or fetch error:", error);
+        }
+    });
+</script>
+</body>
+</html>

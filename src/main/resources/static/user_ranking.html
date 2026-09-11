@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mumbai Railway Stations Environmental Ranking</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card: #111833;
+            --header-bg: #161b22;
+            --border-color: rgba(255, 255, 255, .1);
+            --muted: #97a3b6;
+            --text: #e8ecf6;
+
+            --accent1: #29B6F6;
+            --accent2: #81D4FA;
+            --logo-color: #29B6F6;
+            --glow-color-rgba: rgba(41, 182, 246, 0.4);
+
+            --nav-accent1: #6a5acd;
+            --nav-accent2: #f194ff;
+            --nav-glow-color-rgba: rgba(138, 43, 226, 0.3);
+
+            --good: #34d399;
+            --moderate: #facc15;
+            --poor: #fb923c;
+            --unhealthy: #ef4444;
+            --severe: #a855f7;
+            --hazardous: #800000;
+
+            --noise-low: #34d399;
+            --noise-moderate: #facc15;
+            --noise-high: #fb923c;
+            --noise-dangerous: #ef4444;
+        }
+        *{ box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            background: linear-gradient(120deg, #0b1020 0%, #0e1430 60%, #151a3a 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .site-nav {
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(6px);
+            background: rgba(22, 27, 34, .7);
+        }
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 1rem;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--logo-color);
+            text-decoration: none;
+            transition: filter 0.2s ease;
+        }
+        .logo:hover {
+            filter: brightness(1.2);
+        }
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .toggle-btn-group {
+            display: inline-flex;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--nav-accent1);
+            box-shadow: 0 0 8px 2px var(--nav-glow-color-rgba);
+        }
+        .toggle-btn {
+            padding: 6px 16px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            background-color: transparent;
+            color: var(--nav-accent2);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .toggle-btn:not(:last-child) {
+            border-right: 1px solid var(--nav-accent1);
+        }
+        .toggle-btn.active {
+            background-color: var(--nav-accent1);
+            color: #FFFFFF;
+        }
+        .toggle-btn:hover:not(.active) {
+            background-color: rgba(106, 90, 205, 0.2);
+            color: white;
+        }
+        .nav-btn {
+            cursor: pointer;
+            border: 1px solid var(--nav-accent1);
+            color: var(--nav-accent2);
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            white-space: nowrap;
+            box-shadow: 0 0 8px 2px var(--nav-glow-color-rgba);
+        }
+        .nav-btn.secondary {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.1);
+            color: var(--text);
+            box-shadow: none;
+        }
+        .nav-btn:hover:not(.secondary) {
+            background-color: var(--nav-accent1);
+            border-color: var(--nav-accent1);
+            color: white;
+            box-shadow: 0 0 15px 5px var(--nav-glow-color-rgba);
+        }
+        .nav-btn.secondary:hover {
+            background-color: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+
+        main {
+            padding: 20px 24px 40px;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        .page-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .page-header h1 {
+            font-size: clamp(24px, 4vw, 40px);
+            font-weight: 700;
+            color: #fff;
+        }
+        .page-header p {
+            font-size: 18px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .grid-container {
+            display: flex;
+            justify-content: center;
+        }
+        .grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            width: 100%;
+            max-width: 1200px;
+        }
+        .card {
+            position: relative;
+            background: radial-gradient(1200px 420px at -20% -20%, rgba(111, 86, 250, .1), transparent 60%),
+            radial-gradient(800px 300px at 120% 140%, rgba(79, 156, 255, .08), transparent 55%),
+            linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+            border: 1px solid rgba(255, 255, 255, .08);
+            padding: 16px;
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+        }
+        .card.selected {
+            border-color: var(--accent1);
+            box-shadow: 0 0 0 2px var(--accent1), 0 8px 30px var(--glow-color-rgba);
+            transform: translateY(-2px);
+        }
+        .city {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .city h3 { margin: 0; font-size: 16px; }
+        .pill {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .08);
+            border: 1px solid rgba(255, 255, 255, .08);
+            color: #cbd5e1;
+        }
+        .aqi, .db { font-size: 32px; font-weight: 700; margin: 10px 0 4px; }
+        .meta { font-size: 12px; color: var(--muted); }
+        .status { font-weight: 600; }
+        .status.good { color: var(--good); }
+        .status.moderate { color: var(--moderate); }
+        .status.poor { color: var(--poor); }
+        .status.unhealthy { color: var(--unhealthy); }
+        .status.severe { color: var(--severe); }
+        .status.hazardous { color: var(--hazardous); }
+
+        .status.noise-low { color: var(--noise-low); }
+        .status.noise-moderate { color: var(--noise-moderate); }
+        .status.noise-high { color: var(--noise-high); }
+        .status.noise-dangerous { color: var(--noise-dangerous); }
+
+        .section {
+            margin-top: 40px;
+        }
+
+        .controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .update-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .time-capsule {
+            background: rgba(255,255,255,.08);
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+        }
+
+        .table-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .search-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        #stationSearch {
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 20px;
+            padding: 8px 36px 8px 16px;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s;
+            min-width: 220px;
+        }
+        #stationSearch:focus {
+            border-color: var(--accent1);
+        }
+        .search-container > .bx-search {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            pointer-events: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, .03);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        thead th[data-sort] {
+            cursor: pointer;
+            position: relative;
+            padding-right: 24px;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .sort-indicator {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: var(--muted);
+            opacity: 0.5;
+            transition: opacity 0.2s, color 0.2s;
+        }
+        thead th[data-sort]:hover .sort-indicator {
+            opacity: 1;
+        }
+        thead th.sort-asc .sort-indicator,
+        thead th.sort-desc .sort-indicator {
+            opacity: 1;
+            color: var(--accent2);
+        }
+        thead th {
+            font-size: 12px;
+            text-align: left;
+            color: #b7c3d6;
+            background: rgba(255, 255, 255, .04);
+        }
+        th, td {
+            padding: 12px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            font-size: 13px;
+        }
+        tbody tr:hover { background: rgba(255, 255, 255, .03); }
+        .countdown { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px;}
+
+        .site-footer {
+            background-color: var(--header-bg);
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            border-top: 1px solid var(--border-color);
+        }
+        .site-footer p {
+            color: var(--muted);
+        }
+        .site-footer a {
+            color: var(--accent1);
+            text-decoration: none;
+            margin: 0 8px;
+            transition: color 0.2s ease, text-decoration 0.2s ease;
+        }
+        .site-footer a:hover {
+            color: var(--accent2);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 800px) {
+            .nav-btn .btn-text { display: none; }
+            .nav-controls { gap: 0.5rem; }
+            .controls-header { justify-content: center; text-align: center; }
+        }
+        @media (max-width: 600px) {
+            .nav-container { flex-direction: column; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+<nav class="site-nav">
+    <div class="nav-container">
+        <a class="logo" href="/AQI_Home.html">EcoGauge</a>
+        <div class="nav-controls">
+            <div class="toggle-btn-group">
+                <button type="button" id="aqi-tab-btn" class="toggle-btn active">
+                    <i class='bx bx-wind'></i><span class="btn-text">AQI</span>
+                </button>
+                <button type="button" id="noise-tab-btn" class="toggle-btn">
+                    <i class='bx bxs-volume-full'></i><span class="btn-text">Noise</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main>
+    <header class="page-header">
+        <h1 id="page-title">Mumbai Air Quality Index Ranking</h1>
+        <p id="page-subtitle">Tracking the Air We Breathe</p>
+    </header>
+
+    <div class="grid-container">
+        <div class="grid" id="cards"></div>
+        <div id="loadingIndicator" style="display:none; text-align:center; padding: 20px; color: var(--accent2);">
+            <i class='bx bx-loader-alt bx-spin' style="font-size: 30px;"></i>
+            <p>Fetching data...</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 id="tableTitle" style="font-size: 22px; width: 100%;">Latest Station Readings</h2>
+        <div class="controls-header">
+            <div class="table-controls">
+                <div class="search-container">
+                    <input type="text" id="stationSearch" placeholder="Search a station...">
+                    <i class='bx bx-search'></i>
+                </div>
+                <button id="refreshBtn" class="nav-btn secondary" title="Force refresh data">
+                    <i class='bx bx-refresh'></i><span class="btn-text">Refresh</span>
+                </button>
+            </div>
+            <div class="update-info">
+                <span class="countdown">Last updated:</span>
+                <span id="timestamp-capsule" class="time-capsule">--:--:--</span>
+                <div class="countdown">Next update in: <span id="countdown-timer" class="time-capsule">00:00</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div style="overflow-x:auto; border-radius:14px; margin-top: 10px;">
+        <table id="dataTable">
+            <thead>
+            <tr>
+                <th data-sort="line">Line<i class='bx bxs-sort-alt sort-indicator'></i></th>
+                <th data-sort="stationName">Station<i class='bx bxs-sort-alt sort-indicator'></i></th>
+                <th data-sort="lat">Latitude<i class='bx bxs-sort-alt sort-indicator'></i></th>
+                <th data-sort="lon">Longitude<i class='bx bxs-sort-alt sort-indicator'></i></th>
+                <th data-sort="primaryValue" id="value-header">AQI<i class='bx bxs-sort-alt sort-indicator'></i></th>
+                <th data-sort="category">Category<i class='bx bxs-sort-alt sort-indicator'></i></th>
+                <th data-sort="dominantPollutant" id="dominant-header">Dominant<i class='bx bxs-sort-alt sort-indicator'></i></th>
+                <th data-sort="pm25" class="aqi-only">PM2.5<i class='bx bxs-sort-alt sort-indicator'></i></th>
+                <th data-sort="pm10" class="aqi-only">PM10<i class='bx bxs-sort-alt sort-indicator'></i></th>
+                <th data-sort="no2" class="aqi-only">NO₂<i class='bx bxs-sort-alt sort-indicator'></i></th>
+                <th data-sort="o3" class="aqi-only">O₃<i class='bx bxs-sort-alt sort-indicator'></i></th>
+            </tr>
+            </thead>
+            <tbody id="tableBody">
+            <tr><td colspan="11" style="text-align: center; color: var(--accent2);">Loading data from backend...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; 2025 EcoGauge. All Rights Reserved.</p>
+    <p>
+
+        <a href="/feedback.html">Submit Feedback</a>
+    </p>
+</footer>
+
+<script>
+    let latestRows = [];
+    let selectedLine = "All";
+    let sortState = { column: 'stationName', direction: 'asc' };
+    let currentMode = "aqi";
+    const API_URL = '/api/stations';
+
+    const elCards = document.getElementById('cards');
+    const elBody = document.getElementById('tableBody');
+    const elCountdown = document.getElementById('countdown-timer');
+    const elTableTitle = document.getElementById('tableTitle');
+    const elTimestampCapsule = document.getElementById('timestamp-capsule');
+    const elStationSearch = document.getElementById('stationSearch');
+    const elPageTitle = document.getElementById('page-title');
+    const elPageSubtitle = document.getElementById('page-subtitle');
+    const elAqiTabBtn = document.getElementById('aqi-tab-btn');
+    const elNoiseTabBtn = document.getElementById('noise-tab-btn');
+    const elDominantHeader = document.getElementById('dominant-header');
+    const elValueHeader = document.getElementById('value-header');
+    const elLoadingIndicator = document.getElementById('loadingIndicator');
+
+    const INTERVAL_MS = 60 * 1000;
+    let countdownInterval = null;
+    let nextAt = Date.now() + INTERVAL_MS;
+
+
+    function getAqiInfo(aqi) {
+        if (aqi <= 50) return { category: "Good", className: "good" };
+        if (aqi <= 100) return { category: "Moderate", className: "moderate" };
+        if (aqi <= 150) return { category: "Poor", className: "poor" };
+        if (aqi <= 200) return { category: "Unhealthy", className: "unhealthy" };
+        if (aqi <= 300) return { category: "Severe", className: "severe" };
+        return { category: "Hazardous", className: "hazardous" };
+    }
+
+    function getNoiseInfo(db) {
+        if (db <= 50) return { category: "Low", className: "noise-low" };
+        if (db <= 70) return { category: "Moderate", className: "noise-moderate" };
+        if (db <= 85) return { category: "High", className: "noise-high" };
+        return { category: "Dangerous", className: "noise-dangerous" };
+    }
+
+    function formatIST(isoString) {
+        if (!isoString) return '--:--:--';
+        const date = new Date(isoString);
+        return date.toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        }).toUpperCase();
+    }
+
+    function formatMMSS(ms) {
+        const s = Math.max(0, Math.floor(ms / 1000));
+        const m = String(Math.floor(s / 60)).padStart(2, '0');
+        const r = String(s % 60).padStart(2, '0');
+        return `${m}:${r}`;
+    }
+
+    async function fetchStationData() {
+        elLoadingIndicator.style.display = 'block';
+        elBody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--accent2);">Fetching fresh data...</td></tr>';
+
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            const newestDataMap = new Map();
+            data.forEach(item => {
+                const existing = newestDataMap.get(item.stationName);
+                if (!existing || new Date(item.timestamp) > new Date(existing.timestamp)) {
+                    const mappedItem = {
+                        ...item,
+                        primaryValue: currentMode === 'aqi' ? item.aqiValue : item.noiseLevel,
+                        category: currentMode === 'aqi' ? item.aqiCategory : item.noiseCategory,
+                    };
+                    newestDataMap.set(item.stationName, mappedItem);
+                }
+            });
+
+            latestRows = Array.from(newestDataMap.values());
+
+            const newestTimestamp = latestRows.reduce((latest, current) => {
+                return new Date(current.timestamp) > new Date(latest.timestamp) ? current : latest;
+            }, { timestamp: new Date(0).toISOString() });
+
+            elTimestampCapsule.textContent = formatIST(newestTimestamp.timestamp);
+
+            updateDisplay();
+
+        } catch (error) {
+            elBody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--unhealthy);">Data load failed! Check backend API status.</td></tr>';
+            elTimestampCapsule.textContent = 'ERROR';
+        } finally {
+            elLoadingIndicator.style.display = 'none';
+        }
+    }
+
+
+    function updateDisplay() {
+        const rows = latestRows;
+        const searchTerm = elStationSearch.value.toLowerCase().trim();
+
+        if (currentMode === 'aqi') {
+            elPageTitle.textContent = "Mumbai Air Quality Index Ranking";
+            elPageSubtitle.textContent = "Tracking the Air We Breathe";
+            elValueHeader.textContent = "AQI";
+            elDominantHeader.style.display = 'table-cell';
+            document.querySelectorAll('.aqi-only').forEach(el => el.style.display = 'table-cell');
+            document.querySelectorAll('.noise-only').forEach(el => el.style.display = 'none');
+            rows.forEach(r => {
+                r.primaryValue = r.aqiValue;
+                r.category = r.aqiCategory;
+            });
+        } else {
+            elPageTitle.textContent = "Mumbai Noise Pollution Ranking";
+            elPageSubtitle.textContent = "Listen to the City's Pulse";
+            elValueHeader.textContent = "Noise Level (dB)";
+            elDominantHeader.style.display = 'none';
+            document.querySelectorAll('.aqi-only').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.noise-only').forEach(el => el.style.display = 'table-cell');
+            rows.forEach(r => {
+                r.primaryValue = r.noiseLevel;
+                r.category = r.noiseCategory;
+            });
+        }
+
+        const byLine = { "All": { sum: 0, count: 0, dominant: {} } };
+        rows.forEach(r => {
+            if (!byLine[r.line]) byLine[r.line] = { sum: 0, count: 0, dominant: {} };
+            byLine[r.line].sum += r.primaryValue; byLine[r.line].count++;
+            if (currentMode === 'aqi') {
+                byLine[r.line].dominant[r.dominantPollutant] = (byLine[r.line].dominant[r.dominantPollutant] || 0) + 1;
+            }
+            byLine["All"].sum += r.primaryValue; byLine["All"].count++;
+            if (currentMode === 'aqi') {
+                byLine["All"].dominant[r.dominantPollutant] = (byLine["All"].dominant[r.dominantPollutant] || 0) + 1;
+            }
+        });
+
+        const cardHtml = Object.entries(byLine).map(([line, agg]) => {
+            const avg = agg.count > 0 ? (agg.sum / agg.count) : 0;
+            const info = currentMode === 'aqi' ? getAqiInfo(avg) : getNoiseInfo(avg);
+            const dominantText = currentMode === 'aqi'
+                ? `Dominant: ${Object.keys(agg.dominant).reduce((a, b) => (agg.dominant[a] > agg.dominant[b] ? a : b), 'N/A')}`
+                : "";
+            const isSelected = line === selectedLine ? 'selected' : '';
+            const title = line === "All" ? "Mumbai" : `${line} Line`;
+            const unit = currentMode === 'aqi' ? '' : 'dB';
+            const valueDisplay = avg.toFixed(currentMode === 'noise' ? 1 : 0);
+
+            return `<div class="card ${isSelected}" data-line="${line}">
+            <div class="city"><h3>${title}</h3><span class="pill">${agg.count} stns</span></div>
+            <div class="db" style="color: var(${info.className})">${valueDisplay} <span style="font-size: 0.5em; vertical-align: super;">${unit}</span></div>
+            <div class="meta">
+                <span class="status ${info.className}">${info.category}</span> ${dominantText}
+            </div>
+        </div>`;
+        }).join('');
+        elCards.innerHTML = cardHtml;
+
+        let lineFilteredRows = selectedLine === "All" ? rows : rows.filter(r => r.line === selectedLine);
+
+        let searchFilteredRows = !searchTerm
+            ? lineFilteredRows
+            : lineFilteredRows.filter(r => r.stationName.toLowerCase().includes(searchTerm));
+
+        const { column, direction } = sortState;
+        let rowsToRender = [...searchFilteredRows];
+
+        const numericColumns = ['lat', 'lon', 'primaryValue', 'aqiValue', 'noiseLevel', 'pm25', 'pm10', 'no2', 'o3'];
+        const isNumeric = numericColumns.includes(column);
+
+
+        rowsToRender.sort((a, b) => {
+            let valA = a[column];
+            let valB = b[column];
+
+            if (isNumeric) {
+                const numA = parseFloat(valA) || 0;
+                const numB = parseFloat(valB) || 0;
+                if (numA < numB) return direction === 'asc' ? -1 : 1;
+                if (numA > numB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            } else {
+                const strA = String(valA).toLowerCase();
+                const strB = String(valB).toLowerCase();
+                return direction === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+            }
+        });
+
+        elTableTitle.textContent = selectedLine === "All" ? `Latest Readings for Mumbai` : `Latest Readings for ${selectedLine} Line`;
+
+        document.querySelectorAll('thead th[data-sort]').forEach(th => {
+            th.classList.remove('sort-asc', 'sort-desc');
+            const indicator = th.querySelector('.sort-indicator');
+            if (indicator) {
+                indicator.className = 'bx bxs-sort-alt sort-indicator';
+            }
+        });
+        const activeHeader = document.querySelector(`thead th[data-sort="${column}"]`);
+        if (activeHeader) {
+            activeHeader.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
+            const indicator = activeHeader.querySelector('.sort-indicator');
+            if(indicator) {
+                indicator.className = `bx ${direction === 'asc' ? 'bxs-up-arrow' : 'bxs-down-arrow'} sort-indicator`;
+            }
+        }
+
+        elBody.innerHTML = rowsToRender.map(r => {
+            const info = currentMode === 'aqi' ? getAqiInfo(r.aqiValue) : getNoiseInfo(r.noiseLevel);
+            const valueDisplay = currentMode === 'aqi' ? r.aqiValue.toFixed(0) : r.noiseLevel.toFixed(1);
+
+            let pollutantData = '';
+            let categoryText = currentMode === 'aqi' ? r.aqiCategory : r.noiseCategory;
+            let dominantText = currentMode === 'aqi' ? r.dominantPollutant : 'N/A';
+
+
+            if (currentMode === 'aqi') {
+                pollutantData = `<td>${dominantText}</td>
+                             <td>${r.pm25.toFixed(1)}</td>
+                             <td>${r.pm10.toFixed(1)}</td>
+                             <td>${r.no2.toFixed(1)}</td>
+                             <td>${r.o3.toFixed(1)}</td>`;
+            } else {
+                pollutantData = `<td style="display:none;">N/A</td>
+                             <td style="display:none;">N/A</td>
+                             <td style="display:none;">N/A</td>
+                             <td style="display:none;">N/A</td>
+                             <td style="display:none;">N/A</td>`;
+            }
+
+            return `<tr>
+            <td>${r.line}</td>
+            <td>${r.stationName}</td>
+            <td>${r.lat.toFixed(4)}</td>
+            <td>${r.lon.toFixed(4)}</td>
+            <td><b style="color: var(${info.className})">${valueDisplay}</b></td>
+            <td><span class="status ${info.className}">${categoryText}</span></td>
+            ${pollutantData}
+        </tr>`;
+        }).join('');
+    }
+
+
+    function schedule() {
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        fetchStationData();
+        nextAt = Date.now() + INTERVAL_MS;
+
+        setInterval(fetchStationData, INTERVAL_MS);
+
+        countdownInterval = setInterval(() => {
+            const rem = nextAt - Date.now();
+            if (rem <= 0) {
+                nextAt = Date.now() + INTERVAL_MS;
+            }
+            elCountdown.textContent = formatMMSS(rem);
+        }, 250);
+    }
+
+    // REMOVED: download function
+
+    function switchMode(mode) {
+        currentMode = mode;
+        selectedLine = "All";
+        elAqiTabBtn.classList.toggle('active', mode === 'aqi');
+        elNoiseTabBtn.classList.toggle('active', mode === 'noise');
+        elStationSearch.value = '';
+        sortState = { column: 'stationName', direction: 'asc' };
+
+        updateDisplay();
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        fetchStationData();
+        nextAt = Date.now() + INTERVAL_MS;
+    });
+
+    // REMOVED: Export button listener
+
+    elCards.addEventListener('click', (e) => {
+        const card = e.target.closest('.card');
+        if (!card) return;
+        selectedLine = card.dataset.line;
+        updateDisplay();
+    });
+
+    elStationSearch.addEventListener('input', () => {
+        updateDisplay();
+    });
+
+    document.querySelector('table thead').addEventListener('click', (e) => {
+        const header = e.target.closest('th[data-sort]');
+        if (!header) return;
+
+        const column = header.dataset.sort;
+        if (sortState.column === column) {
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortState.column = column;
+            sortState.direction = 'asc';
+        }
+        updateDisplay();
+    });
+
+    elAqiTabBtn.addEventListener('click', () => switchMode('aqi'));
+    elNoiseTabBtn.addEventListener('click', () => switchMode('noise'));
+
+    schedule();
+</script>
+</body>
+</html>
